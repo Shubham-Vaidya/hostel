@@ -1,4 +1,7 @@
 from django.shortcuts import render
+from .models import Room, Allocation
+
+
 
 # Dummy Student Data
 
@@ -131,6 +134,13 @@ student_data = [
     "batch":"FSWD",
     "status":"Pending"
 },
+    {
+    "id":19,
+    "name":"Sameer Shah",
+    "gender":"Male",
+    "batch":"FSWD",
+    "status":"Pending"
+},
 
 ]
 
@@ -141,10 +151,9 @@ def dashboard(request):
     return render(request, 'dashboard.html')
 
 
+
 # Rooms Page
 
-def rooms(request):
-    return render(request, 'rooms.html')
 
 
 # Students Page
@@ -215,61 +224,61 @@ def devops_allocation(request):
         }
     )
 
-def auto_allocate_students(student_list):
+# def auto_allocate_students(student_list):
 
-    allocations = {}
+#     allocations = {}
 
-    girls = []
-    boys = []
+#     girls = []
+#     boys = []
 
-    for student in student_list:
+#     for student in student_list:
 
-        if student["gender"] == "Female":
-            girls.append(student)
+#         if student["gender"] == "Female":
+#             girls.append(student)
 
-        else:
-            boys.append(student)
+#         else:
+#             boys.append(student)
 
-    # Girls Rooms 7-16
+#     Girls Rooms 7-16
 
-    room_number = 7
+#     room_number = 7
 
-    for i in range(0, len(girls), 2):
+#     for i in range(0, len(girls), 2):
 
-        allocations[room_number] = girls[i:i+2]
+#         allocations[room_number] = girls[i:i+2]
 
-        room_number += 1
+#         room_number += 1
 
-    # Boys Rooms 17-38
+#     # Boys Rooms 17-38
 
-    room_number = 17
+#     room_number = 17
 
-    for i in range(0, len(boys), 2):
+#     for i in range(0, len(boys), 2):
 
-        allocations[room_number] = boys[i:i+2]
+#         allocations[room_number] = boys[i:i+2]
 
-        room_number += 1
+#         room_number += 1
 
-    return allocations
+#     return allocations
 
-def fswd_auto_allocate(request):
+# def fswd_auto_allocate(request):
 
-    fswd_students = [
-        student
-        for student in student_data
-        if student["batch"] == "FSWD"
-    ]
+#     fswd_students = [
+#         student
+#         for student in student_data
+#         if student["batch"] == "FSWD"
+#     ]
 
-    allocations = auto_allocate_students(fswd_students)
+#     allocations = auto_allocate_students(fswd_students)
 
-    return render(
-        request,
-        "allocation_result.html",
-        {
-            "allocations": allocations,
-            "batch": "FSWD"
-        }
-    )
+#     return render(
+#         request,
+#         "allocation_result.html",
+#         {
+#             "allocations": allocations,
+#             "batch": "FSWD"
+#         }
+#     )
 
 def auto_allocate_students(student_list):
 
@@ -343,3 +352,31 @@ def fswd_auto_allocate(request):
             "remaining_capacity": remaining_capacity,
         }
     )
+
+
+
+
+def room_list(request):
+    rooms = Room.objects.all().prefetch_related("allocation_set")
+
+    room_data = []
+
+    for room in rooms:
+        allocations = room.allocation_set.all()
+
+        if room.is_under_repair:
+            status = "grey"
+        elif allocations.count() == 2:
+            status = "red"
+        elif allocations.count() == 1:
+            status = "yellow"
+        else:
+            status = "green"
+
+        room_data.append({
+            "room": room,
+            "students": allocations,
+            "status": status
+        })
+
+    return render(request, "rooms.html", {"rooms": room_data})
