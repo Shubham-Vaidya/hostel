@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Students – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_students %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.upload-zone {
+    border: 3px dashed var(--black);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafafa;
+    position: relative;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--orange);
+    background: #fff7f5;
+}
+.upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+.upload-icon {
+    font-size: 3rem;
+    color: #ccc;
+    margin-bottom: 12px;
+}
+.upload-zone.has-file .upload-icon { color: var(--orange); }
+.csv-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    font-size: 0.78rem;
+}
+.csv-row > span {
+    padding: 8px 10px;
+    border: 1px solid var(--grid);
+    font-family: monospace;
+}
+.csv-row.header > span {
+    background: var(--black);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">IMPORT <span class="accent">STUDENTS</span></div>
+        <div class="pg-sub">Bulk upload students from a CSV file</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'hostel:add_student' %}" class="btn-p-outline">
+            <i class="fa-solid fa-user-plus"></i> Add Single Student
+        </a>
+        <a href="{% url 'hostel:students' %}" class="btn-p-outline">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- LEFT: UPLOAD FORM -->
+    <div class="col-md-7">
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-file-csv"></i> UPLOAD CSV FILE
+            </div>
+            <div class="p-card-body">
+
+                <form method="POST" enctype="multipart/form-data" id="upload-form">
+                    {% csrf_token %}
+
+                    <div class="upload-zone mb-4" id="upload-zone">
+                        <input type="file" name="csv_file" id="csv-input" accept=".csv">
+                        <div class="upload-icon"><i class="fa-solid fa-file-csv"></i></div>
+                        <div style="font-weight:700; font-size:1rem; margin-bottom:6px;" id="upload-label">
+                            Click to select CSV file
+                        </div>
+                        <div style="font-size:0.75rem; color:#888;">
+                            or drag and drop here · .csv files only
+                        </div>
+                    </div>
+
+                    <div class="warn-box mb-4">
+                        <strong><i class="fa-solid fa-circle-info"></i> Required columns:</strong>
+                        <code>registration_id</code>, <code>full_name</code>, <code>gender</code>, <code>batch</code><br>
+                        <strong>Optional columns:</strong> <code>email</code>, <code>phone</code>
+                    </div>
+
+                    <button type="submit" class="btn-p" style="width:100%; justify-content:center; padding:13px;">
+                        <i class="fa-solid fa-upload"></i> Import Students
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- DOWNLOAD SAMPLE -->
+        <div class="p-card mt-3">
+            <div class="p-card-head">
+                <i class="fa-solid fa-download"></i> SAMPLE CSV FORMAT
+            </div>
+            <div class="p-card-body" style="padding:0;">
+                <div class="csv-row header">
+                    <span>registration_id</span>
+                    <span>full_name</span>
+                    <span>gender</span>
+                    <span>batch</span>
+                    <span>email</span>
+                    <span>phone</span>
+                </div>
+                <div class="csv-row">
+                    <span>FSWD-009</span><span>Rahul Kapoor</span>
+                    <span>M</span><span>FSWD</span>
+                    <span>rahul@ex.com</span><span>9876543210</span>
+                </div>
+                <div class="csv-row" style="background:#fafafa;">
+                    <span>AIML-007</span><span>Priya Sharma</span>
+                    <span>F</span><span>AIML</span>
+                    <span>priya@ex.com</span><span>9876543211</span>
+                </div>
+                <div class="csv-row">
+                    <span>DEVOPS-007</span><span>Amit Kumar</span>
+                    <span>M</span><span>DEVOPS</span>
+                    <span></span><span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: RULES -->
+    <div class="col-md-5">
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-circle-info"></i> IMPORT RULES
+            </div>
+            <div class="p-card-body">
+                <div style="font-size:0.82rem; line-height:1.8;">
+
+                    <div style="margin-bottom:16px;">
+                        <div style="font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                            ✅ Accepted Values
+                        </div>
+                        <div><strong>Gender:</strong> <code>M</code> / <code>F</code> / <code>Male</code> / <code>Female</code></div>
+                        <div><strong>Batch:</strong> <code>FSWD</code> / <code>AIML</code> / <code>DEVOPS</code></div>
+                    </div>
+
+                    <div style="margin-bottom:16px;">
+                        <div style="font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                            🔑 Duplicate Handling
+                        </div>
+                        <div>Rows with an existing <code>registration_id</code> are <strong>skipped</strong> (not updated). Remove them from your CSV if you want fresh imports.</div>
+                    </div>
+
+                    <div style="margin-bottom:16px;">
+                        <div style="font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                            ⚠ Encoding
+                        </div>
+                        <div>Save your CSV as <strong>UTF-8</strong>. Excel's "Save As CSV" uses UTF-8 BOM — this is handled automatically.</div>
+                    </div>
+
+                    <div>
+                        <div style="font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                            📋 Column Order
+                        </div>
+                        <div>Column names in the <strong>header row</strong> determine order — they can be in any sequence as long as the names match exactly.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AFTER IMPORT -->
+        <div class="p-card mt-3">
+            <div class="p-card-head">
+                <i class="fa-solid fa-arrow-right"></i> AFTER IMPORT
+            </div>
+            <div class="p-card-body" style="font-size:0.82rem; line-height:1.8;">
+                <div>1. Imported students appear in the <a href="{% url 'hostel:students' %}">Students list</a> with <span class="bdg bdg-orange">PENDING</span> status.</div>
+                <div style="margin-top:8px;">2. Run <a href="{% url 'hostel:auto_allocate' %}">Auto Allocation</a> to assign rooms automatically.</div>
+                <div style="margin-top:8px;">3. Or use <a href="{% url 'hostel:manual_allocate' %}">Manual Allocation</a> for individual assignments.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const input    = document.getElementById('csv-input');
+const zone     = document.getElementById('upload-zone');
+const label    = document.getElementById('upload-label');
+
+input.addEventListener('change', function() {
+    if (this.files.length > 0) {
+        label.textContent = this.files[0].name;
+        zone.classList.add('has-file');
+    }
+});
+
+zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+});
+
+zone.addEventListener('dragleave', function() {
+    zone.classList.remove('drag-over');
+});
+
+zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        input.files = files;
+        label.textContent = files[0].name;
+        zone.classList.add('has-file');
+    }
+});
+</script>
+{% endblock %}

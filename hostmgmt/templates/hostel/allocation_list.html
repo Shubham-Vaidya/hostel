@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}All Allocations – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_alloc %}active{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">ALL <span class="accent">ALLOCATIONS</span></div>
+        <div class="pg-sub">Active hostel room allocations</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'hostel:auto_allocate' %}" class="btn-p">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto Allocate
+        </a>
+        <a href="{% url 'hostel:manual_allocate' %}" class="btn-p-outline">
+            <i class="fa-solid fa-hand-pointer"></i> Manual
+        </a>
+    </div>
+</div>
+
+<!-- FILTER BAR -->
+<form method="GET" class="d-flex flex-wrap gap-2 mb-4 align-items-end">
+    <div>
+        <label class="p-label">Batch</label>
+        <select name="batch" class="p-input" style="width:auto; min-width:120px;">
+            <option value="">All Batches</option>
+            <option value="FSWD"   {% if batch_filter == 'FSWD' %}selected{% endif %}>FSWD</option>
+            <option value="AIML"   {% if batch_filter == 'AIML' %}selected{% endif %}>AIML</option>
+            <option value="DEVOPS" {% if batch_filter == 'DEVOPS' %}selected{% endif %}>DEVOPS</option>
+        </select>
+    </div>
+    <div>
+        <label class="p-label">Gender</label>
+        <select name="gender" class="p-input" style="width:auto; min-width:110px;">
+            <option value="">All</option>
+            <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>Male</option>
+            <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>Female</option>
+        </select>
+    </div>
+    <div>
+        <label class="p-label">Room Type</label>
+        <select name="room_type" class="p-input" style="width:auto; min-width:140px;">
+            <option value="">All Types</option>
+            <option value="GIRLS"   {% if type_filter == 'GIRLS' %}selected{% endif %}>Girls Hostel</option>
+            <option value="BOYS"    {% if type_filter == 'BOYS' %}selected{% endif %}>Boys Hostel</option>
+            <option value="TRAINER" {% if type_filter == 'TRAINER' %}selected{% endif %}>Trainer Room</option>
+        </select>
+    </div>
+    <div>
+        <label class="p-label">Allocation Type</label>
+        <select name="alloc_type" class="p-input" style="width:auto; min-width:130px;">
+            <option value="">All</option>
+            <option value="AUTO"   {% if alloc_filter == 'AUTO' %}selected{% endif %}>Auto</option>
+            <option value="MANUAL" {% if alloc_filter == 'MANUAL' %}selected{% endif %}>Manual</option>
+        </select>
+    </div>
+    <div>
+        <button type="submit" class="btn-p btn-p-sm">
+            <i class="fa-solid fa-filter"></i> Filter
+        </button>
+    </div>
+    {% if batch_filter or gender_filter or type_filter or alloc_filter %}
+    <div>
+        <a href="{% url 'hostel:allocation_list' %}" class="btn-p-outline btn-p-sm">
+            <i class="fa-solid fa-xmark"></i> Clear
+        </a>
+    </div>
+    {% endif %}
+</form>
+
+<!-- TABLE -->
+<div class="p-table-wrap">
+    <table class="p-table">
+        <thead>
+            <tr>
+                <th>Room</th>
+                <th>Student</th>
+                <th>Reg. ID</th>
+                <th>Batch</th>
+                <th>Gender</th>
+                <th>Type</th>
+                <th>Allocated By</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alloc in allocations %}
+            <tr>
+                <td>
+                    <a href="{% url 'hostel:room_detail' alloc.room.room_number %}"
+                       style="font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:var(--orange); text-decoration:none;">
+                        {{ alloc.room.room_number }}
+                    </a>
+                    <div style="font-size:0.62rem; color:#888; text-transform:uppercase;">{{ alloc.room.get_room_type_display }}</div>
+                </td>
+                <td><strong>{{ alloc.student.full_name }}</strong></td>
+                <td><code style="font-size:0.78rem;">{{ alloc.student.registration_id }}</code></td>
+                <td><span class="bdg bdg-navy">{{ alloc.student.batch }}</span></td>
+                <td>{{ alloc.student.get_gender_display }}</td>
+                <td>
+                    <span class="bdg {% if alloc.allocation_type == 'AUTO' %}bdg-black{% else %}bdg-orange{% endif %}">
+                        {{ alloc.allocation_type }}
+                    </span>
+                </td>
+                <td style="font-size:0.78rem; color:#888;">
+                    {% if alloc.allocated_by %}{{ alloc.allocated_by.get_full_name|default:alloc.allocated_by.username }}{% else %}System{% endif %}
+                </td>
+                <td style="font-size:0.78rem; color:#888; white-space:nowrap;">
+                    {{ alloc.allocated_at|date:"d M Y" }}
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <form method="POST" action="{% url 'hostel:remove_allocation' alloc.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-p btn-p-sm"
+                                    style="background:#dc2626; border-color:#dc2626; box-shadow:2px 2px 0 #7f1d1d;"
+                                    onclick="return confirm('Remove {{ alloc.student.full_name }} from Room {{ alloc.room.room_number }}?')">
+                                <i class="fa-solid fa-user-minus"></i>
+                            </button>
+                        </form>
+                        <a href="{% url 'hostel:transfer_student' alloc.id %}" class="btn-p-outline btn-p-sm"
+                           title="Transfer to another room">
+                            <i class="fa-solid fa-right-left"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" style="text-align:center; padding:40px; color:#888;">
+                    <i class="fa-solid fa-inbox" style="font-size:2rem; color:#ddd; display:block; margin-bottom:8px;"></i>
+                    No allocations found.
+                    {% if batch_filter or gender_filter or type_filter or alloc_filter %}
+                    <br><a href="{% url 'hostel:allocation_list' %}">Clear filters</a> or
+                    {% endif %}
+                    <a href="{% url 'hostel:auto_allocate' %}">run auto allocation</a>.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- COUNT -->
+{% if allocations %}
+<div style="font-size:0.75rem; color:#888; margin-top:10px; text-align:right;">
+    Showing {{ allocations|length }} allocation(s)
+</div>
+{% endif %}
+
+{% endblock %}

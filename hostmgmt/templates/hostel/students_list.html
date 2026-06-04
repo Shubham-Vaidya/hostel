@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Hostel Students – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_students %}active{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">HOSTEL <span class="accent">STUDENTS</span></div>
+        <div class="pg-sub">All registered hostel students</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'hostel:import_students' %}" class="btn-p-outline">
+            <i class="fa-solid fa-file-csv"></i> Import CSV
+        </a>
+        <a href="{% url 'hostel:add_student' %}" class="btn-p">
+            <i class="fa-solid fa-user-plus"></i> Add Student
+        </a>
+    </div>
+</div>
+
+<!-- FILTER BAR -->
+<form method="GET" class="d-flex flex-wrap gap-2 mb-4 align-items-end">
+    <div>
+        <label class="p-label">Batch</label>
+        <select name="batch" class="p-input" style="width:auto; min-width:120px;">
+            <option value="">All Batches</option>
+            <option value="FSWD"   {% if batch_filter == 'FSWD' %}selected{% endif %}>FSWD</option>
+            <option value="AIML"   {% if batch_filter == 'AIML' %}selected{% endif %}>AIML</option>
+            <option value="DEVOPS" {% if batch_filter == 'DEVOPS' %}selected{% endif %}>DEVOPS</option>
+        </select>
+    </div>
+    <div>
+        <label class="p-label">Gender</label>
+        <select name="gender" class="p-input" style="width:auto; min-width:110px;">
+            <option value="">All</option>
+            <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>Male</option>
+            <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>Female</option>
+        </select>
+    </div>
+    <div>
+        <label class="p-label">Status</label>
+        <select name="status" class="p-input" style="width:auto; min-width:130px;">
+            <option value="">All Status</option>
+            <option value="PENDING"   {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+            <option value="ALLOCATED" {% if status_filter == 'ALLOCATED' %}selected{% endif %}>Allocated</option>
+            <option value="VACATED"   {% if status_filter == 'VACATED' %}selected{% endif %}>Vacated</option>
+        </select>
+    </div>
+    <div>
+        <button type="submit" class="btn-p btn-p-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+    </div>
+    {% if batch_filter or gender_filter or status_filter %}
+    <div>
+        <a href="{% url 'hostel:students' %}" class="btn-p-outline btn-p-sm">
+            <i class="fa-solid fa-xmark"></i> Clear
+        </a>
+    </div>
+    {% endif %}
+</form>
+
+<!-- TABLE -->
+<div class="p-table-wrap">
+    <table class="p-table">
+        <thead>
+            <tr>
+                <th>Reg. ID</th>
+                <th>Name</th>
+                <th>Gender</th>
+                <th>Batch</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr>
+                <td><code style="font-size:0.78rem;">{{ s.registration_id }}</code></td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; flex-shrink:0;
+                             background:{% if s.gender == 'F' %}#fce7f3; color:#9d174d{% else %}#dbeafe; color:#1e40af{% endif %};">
+                            {{ s.full_name|first }}
+                        </div>
+                        <strong>{{ s.full_name }}</strong>
+                    </div>
+                </td>
+                <td>{{ s.get_gender_display }}</td>
+                <td><span class="bdg bdg-navy">{{ s.batch }}</span></td>
+                <td style="font-size:0.78rem; color:#888;">{{ s.email|default:"—" }}</td>
+                <td style="font-size:0.78rem; color:#888;">{{ s.phone|default:"—" }}</td>
+                <td>
+                    {% if s.allocation_status == 'ALLOCATED' %}
+                    <span class="bdg bdg-green">Allocated</span>
+                    {% elif s.allocation_status == 'PENDING' %}
+                    <span class="bdg bdg-orange">Pending</span>
+                    {% else %}
+                    <span class="bdg bdg-black">{{ s.allocation_status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if s.allocation_status == 'PENDING' %}
+                    <a href="{% url 'hostel:manual_allocate' %}" class="btn-p btn-p-sm">
+                        <i class="fa-solid fa-user-plus"></i> Allocate
+                    </a>
+                    {% elif s.allocation_status == 'ALLOCATED' %}
+                    {% if s.allocation %}
+                    <a href="{% url 'hostel:room_detail' s.allocation.room.room_number %}" class="btn-p-outline btn-p-sm">
+                        <i class="fa-solid fa-door-open"></i> Room {{ s.allocation.room.room_number }}
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align:center; padding:40px; color:#888;">
+                    <i class="fa-solid fa-users" style="font-size:2rem; color:#ddd; display:block; margin-bottom:8px;"></i>
+                    No students found.
+                    {% if batch_filter or gender_filter or status_filter %}
+                    <a href="{% url 'hostel:students' %}">Clear filters</a> or
+                    {% endif %}
+                    <a href="{% url 'hostel:add_student' %}">add a student</a>.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if students %}
+<div style="font-size:0.75rem; color:#888; margin-top:10px; text-align:right;">
+    Showing {{ students|length }} student(s)
+</div>
+{% endif %}
+
+{% endblock %}

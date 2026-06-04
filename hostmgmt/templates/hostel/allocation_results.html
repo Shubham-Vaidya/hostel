@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Allocation Results – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_alloc %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.result-card {
+    background: #fff;
+    border: 2px solid var(--black);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.result-card:hover {
+    transform: translate(-2px,-2px);
+    box-shadow: 4px 4px 0 var(--orange);
+}
+.result-card .rc-head {
+    background: var(--black);
+    color: #fff;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.result-card .rc-room-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    line-height: 1;
+}
+.result-card .rc-body {
+    padding: 14px 16px;
+}
+.occupant-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--grid);
+    font-size: 0.82rem;
+}
+.occupant-row:last-child { border-bottom: none; }
+.occ-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.occ-avatar.female { background: #fce7f3; color: #9d174d; }
+.occ-avatar.male   { background: #dbeafe; color: #1e40af; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">ALLOCATION <span class="accent">RESULTS</span></div>
+        <div class="pg-sub">
+            {% if summary.batch %}Batch: {{ summary.batch }} · {% endif %}
+            Room-by-room allocation breakdown
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'hostel:allocation_list' %}" class="btn-p">
+            <i class="fa-solid fa-list-check"></i> View All Allocations
+        </a>
+        <a href="{% url 'hostel:manual_allocate' %}" class="btn-p-outline">
+            <i class="fa-solid fa-hand-pointer"></i> Manual Allocate
+        </a>
+    </div>
+</div>
+
+<!-- SUMMARY BANNER -->
+{% if summary %}
+<div class="warn-box mb-4" style="border-left-color:#16a34a; background:#f0fdf4; color:#166534;">
+    <i class="fa-solid fa-circle-check"></i>
+    <strong>Auto allocation complete:</strong>
+    {{ summary.allocated_count }} student(s) allocated.
+    {% if summary.skipped_count > 0 %}
+    <span style="color:var(--orange);"> · {{ summary.skipped_count }} could not be placed (no rooms available).</span>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- STAT CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-users"></i></div>
+            <div class="sc-num">{{ total_students }}</div>
+            <div class="sc-label">Total Students</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card s-orange">
+            <div class="sc-icon"><i class="fa-solid fa-user-check"></i></div>
+            <div class="sc-num">{{ allocated_students }}</div>
+            <div class="sc-label">Allocated</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card s-black">
+            <div class="sc-icon"><i class="fa-solid fa-door-open"></i></div>
+            <div class="sc-num">{{ rooms_used }}</div>
+            <div class="sc-label">Rooms Used</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-bed"></i></div>
+            <div class="sc-num">{{ remaining_capacity }}</div>
+            <div class="sc-label">Remaining Beds</div>
+        </div>
+    </div>
+</div>
+
+<!-- ROOM ALLOCATION GRID -->
+{% if rooms_data %}
+<div class="row g-3">
+    {% for rd in rooms_data %}
+    <div class="col-md-4 col-lg-3">
+        <div class="result-card">
+            <div class="rc-head">
+                <div>
+                    <div style="font-size:0.6rem; text-transform:uppercase; letter-spacing:1px; color:#aaa;">Room</div>
+                    <div class="rc-room-num">{{ rd.room.room_number }}</div>
+                </div>
+                <div class="text-end">
+                    <span class="bdg bdg-{{ rd.room.status_color }}" style="font-family:'Inter',sans-serif;">
+                        {{ rd.room.status_label }}
+                    </span>
+                    <div style="font-size:0.7rem; color:#aaa; margin-top:4px;">{{ rd.room.current_occupancy }}/{{ rd.room.capacity }}</div>
+                </div>
+            </div>
+            <div class="rc-body">
+                <div style="font-size:0.6rem; text-transform:uppercase; letter-spacing:1px; color:#888; margin-bottom:8px;">
+                    {{ rd.room.get_room_type_display }}
+                </div>
+                {% for student in rd.occupants %}
+                <div class="occupant-row">
+                    <div class="occ-avatar {% if student.gender == 'F' %}female{% else %}male{% endif %}">
+                        {{ student.full_name|first }}{{ student.full_name|last }}
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:0.82rem;">{{ student.full_name }}</div>
+                        <div style="font-size:0.7rem; color:#888;">
+                            {{ student.batch }} · {{ student.get_gender_display }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if rd.room.current_occupancy < rd.room.capacity %}
+                {% with empty_slots=rd.room.capacity|add:"-1" %}
+                <div class="occupant-row" style="opacity:0.4; font-style:italic; font-size:0.78rem;">
+                    <div class="occ-avatar" style="background:#f3f4f6; color:#ccc;">
+                        <i class="fa-solid fa-bed"></i>
+                    </div>
+                    <div>Empty bed available</div>
+                </div>
+                {% endwith %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="warn-box text-center py-5">
+    <i class="fa-solid fa-inbox" style="font-size:3rem; color:#ccc; display:block; margin-bottom:12px;"></i>
+    No active allocations found. Run auto allocation or add students manually.
+</div>
+{% endif %}
+
+{% endblock %}

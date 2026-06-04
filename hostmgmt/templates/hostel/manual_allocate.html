@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Manual Allocate – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_manual %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.student-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--grid);
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: #fff;
+}
+.student-pill:hover { border-color: var(--navy); background: #f8f9ff; }
+.student-pill.selected { border-color: var(--orange); background: #fff7f5; box-shadow: 2px 2px 0 var(--orange); }
+.s-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
+}
+.s-avatar.f { background:#fce7f3; color:#9d174d; }
+.s-avatar.m { background:#dbeafe; color:#1e40af; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">MANUAL <span class="accent">ALLOCATE</span></div>
+        <div class="pg-sub">Assign a specific student to a specific room</div>
+    </div>
+    <a href="{% url 'hostel:auto_allocate' %}" class="btn-p-outline">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Auto Allocate
+    </a>
+</div>
+
+<div class="row g-4">
+
+    <!-- LEFT: FORM -->
+    <div class="col-lg-5">
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-hand-pointer"></i> ALLOCATE STUDENT
+            </div>
+            <div class="p-card-body">
+                <form method="POST" action="{% url 'hostel:manual_allocate' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="p-label">Select Student (Unallocated)</label>
+                        <select name="student_id" class="p-input" required>
+                            <option value="">-- Select a student --</option>
+                            {% for s in unallocated %}
+                            <option value="{{ s.id }}">
+                                {{ s.full_name }} ({{ s.registration_id }}) — {{ s.batch }} / {{ s.get_gender_display }}
+                            </option>
+                            {% empty %}
+                            <option disabled>No unallocated students</option>
+                            {% endfor %}
+                        </select>
+                        <div style="font-size:0.72rem; color:#888; margin-top:5px;">
+                            Only pending (unallocated) students are shown.
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="p-label">Select Room (Available)</label>
+                        <select name="room_id" class="p-input" required>
+                            <option value="">-- Select a room --</option>
+                            <optgroup label="── Girls Hostel (7–16)">
+                                {% for r in available_rooms %}
+                                {% if r.room_type == 'GIRLS' %}
+                                <option value="{{ r.id }}">
+                                    Room {{ r.room_number }} — {{ r.current_occupancy }}/{{ r.capacity }} occupied
+                                </option>
+                                {% endif %}
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="── Boys Hostel (17–38)">
+                                {% for r in available_rooms %}
+                                {% if r.room_type == 'BOYS' %}
+                                <option value="{{ r.id }}">
+                                    Room {{ r.room_number }} — {{ r.current_occupancy }}/{{ r.capacity }} occupied
+                                </option>
+                                {% endif %}
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="── Trainer Rooms (1–6)">
+                                {% for r in available_rooms %}
+                                {% if r.room_type == 'TRAINER' %}
+                                <option value="{{ r.id }}">
+                                    Room {{ r.room_number }} — {{ r.current_occupancy }}/{{ r.capacity }} occupied
+                                </option>
+                                {% endif %}
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                        <div style="font-size:0.72rem; color:#888; margin-top:5px;">
+                            Only rooms with available capacity are shown. Gender rules are enforced.
+                        </div>
+                    </div>
+
+                    <div class="warn-box mb-4" style="font-size:0.78rem;">
+                        <strong><i class="fa-solid fa-shield-halved"></i> Validation enforced:</strong>
+                        Gender mismatch, full rooms, and under-repair rooms are blocked.
+                    </div>
+
+                    <button type="submit" class="btn-p" style="width:100%; justify-content:center; padding:13px;">
+                        <i class="fa-solid fa-user-plus"></i> Allocate Student
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: UNALLOCATED STUDENTS TABLE -->
+    <div class="col-lg-7">
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-hourglass-half"></i> UNALLOCATED STUDENTS
+                <span class="ms-auto" style="font-size:0.8rem; font-weight:400; color:#aaa;">
+                    {{ unallocated|length }} student(s)
+                </span>
+            </div>
+            <div class="p-card-body" style="padding:0;">
+                {% if unallocated %}
+                <div class="p-table-wrap" style="border:none; max-height:480px; overflow-y:auto;">
+                    <table class="p-table">
+                        <thead>
+                            <tr>
+                                <th>Reg. ID</th>
+                                <th>Name</th>
+                                <th>Gender</th>
+                                <th>Batch</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in unallocated %}
+                            <tr>
+                                <td><code style="font-size:0.78rem;">{{ s.registration_id }}</code></td>
+                                <td>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <div class="s-avatar {% if s.gender == 'F' %}f{% else %}m{% endif %}">
+                                            {{ s.full_name|first }}
+                                        </div>
+                                        <strong>{{ s.full_name }}</strong>
+                                    </div>
+                                </td>
+                                <td>{{ s.get_gender_display }}</td>
+                                <td><span class="bdg bdg-navy">{{ s.batch }}</span></td>
+                                <td><span class="bdg bdg-orange">{{ s.allocation_status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="padding:40px; text-align:center; color:#888;">
+                    <i class="fa-solid fa-circle-check" style="font-size:2.5rem; color:#22c55e; display:block; margin-bottom:12px;"></i>
+                    All students have been allocated!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

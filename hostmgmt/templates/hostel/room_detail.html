@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}Room {{ room.room_number }} – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_rooms %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.info-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--grid); font-size:0.85rem; }
+.info-row:last-child { border-bottom:none; }
+.info-label { font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#888; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">ROOM <span class="accent">{{ room.room_number }}</span></div>
+        <div class="pg-sub">{{ room.get_room_type_display }} · {{ room.status_label }}</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'hostel:rooms' %}" class="btn-p-outline">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <a href="{% url 'hostel:edit_room' room.room_number %}" class="btn-p-outline">
+            <i class="fa-solid fa-pen"></i> Edit Room
+        </a>
+        <form method="POST" action="{% url 'hostel:toggle_repair' room.room_number %}" style="display:inline;">
+            {% csrf_token %}
+            {% if room.is_under_repair %}
+            <button type="submit" class="btn-p" style="background:#16a34a; border-color:#16a34a;">
+                <i class="fa-solid fa-circle-check"></i> Mark Available
+            </button>
+            {% else %}
+            <button type="submit" class="btn-p" style="background:#dc2626; border-color:#dc2626;">
+                <i class="fa-solid fa-wrench"></i> Mark Under Repair
+            </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- LEFT COLUMN -->
+    <div class="col-lg-8">
+
+        <!-- ROOM INFO CARD -->
+        <div class="p-card mb-4">
+            <div class="p-card-head">
+                <i class="fa-solid fa-circle-info"></i> ROOM INFORMATION
+            </div>
+            <div class="p-card-body">
+                <div class="row g-0">
+                    <div class="col-md-6">
+                        <div class="info-row">
+                            <span class="info-label">Room Number</span>
+                            <span class="bebas" style="font-size:1.5rem;">{{ room.room_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Type</span>
+                            <span>{{ room.get_room_type_display }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Capacity</span>
+                            <span>{{ room.capacity }} person(s)</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6" style="padding-left:20px;">
+                        <div class="info-row">
+                            <span class="info-label">Occupancy</span>
+                            <span><strong>{{ room.current_occupancy }}</strong> / {{ room.capacity }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Gender Category</span>
+                            <span>{{ room.get_gender_category_display|default:"Any" }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Status</span>
+                            <span class="bdg bdg-{{ room.status_color }}">{{ room.status_label }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CURRENT OCCUPANTS -->
+        <div class="p-card mb-4">
+            <div class="p-card-head">
+                <i class="fa-solid fa-users"></i> CURRENT OCCUPANTS
+                <span class="ms-auto" style="font-size:0.8rem; font-weight:400; color:#aaa;">
+                    {{ allocations|length }} / {{ room.capacity }}
+                </span>
+            </div>
+            <div class="p-card-body" style="padding:0;">
+                {% if allocations %}
+                <div class="p-table-wrap" style="border:none;">
+                    <table class="p-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Reg. ID</th>
+                                <th>Batch</th>
+                                <th>Gender</th>
+                                <th>Allocated On</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alloc in allocations %}
+                            <tr>
+                                <td><strong>{{ alloc.student.full_name }}</strong></td>
+                                <td><code>{{ alloc.student.registration_id }}</code></td>
+                                <td><span class="bdg bdg-navy">{{ alloc.student.batch }}</span></td>
+                                <td>{{ alloc.student.get_gender_display }}</td>
+                                <td style="font-size:0.78rem; color:#888;">{{ alloc.allocated_at|date:"d M Y" }}</td>
+                                <td><span class="bdg {% if alloc.allocation_type == 'AUTO' %}bdg-black{% else %}bdg-orange{% endif %}">{{ alloc.allocation_type }}</span></td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <form method="POST" action="{% url 'hostel:remove_allocation' alloc.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-p btn-p-sm"
+                                                    style="background:#dc2626; border-color:#dc2626; box-shadow:2px 2px 0 #7f1d1d;"
+                                                    onclick="return confirm('Remove {{ alloc.student.full_name }} from this room?')">
+                                                <i class="fa-solid fa-user-minus"></i>
+                                            </button>
+                                        </form>
+                                        <a href="{% url 'hostel:transfer_student' alloc.id %}" class="btn-p-outline btn-p-sm">
+                                            <i class="fa-solid fa-right-left"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="padding:30px; text-align:center; color:#888; font-size:0.85rem;">
+                    <i class="fa-solid fa-bed" style="font-size:2rem; color:#ddd; display:block; margin-bottom:10px;"></i>
+                    No occupants currently assigned.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ALLOCATION HISTORY -->
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-clock-rotate-left"></i> ALLOCATION HISTORY
+            </div>
+            <div class="p-card-body" style="padding:0;">
+                {% if history %}
+                <div class="p-table-wrap" style="border:none;">
+                    <table class="p-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in history %}
+                            <tr>
+                                <td>{{ h.student.full_name }}</td>
+                                <td style="font-size:0.78rem; color:#888;">{{ h.allocated_at|date:"d M Y, H:i" }}</td>
+                                <td><span class="bdg {% if h.allocation_type == 'AUTO' %}bdg-black{% else %}bdg-orange{% endif %}">{{ h.allocation_type }}</span></td>
+                                <td>
+                                    {% if h.is_active %}
+                                    <span class="bdg bdg-green">Active</span>
+                                    {% else %}
+                                    <span class="bdg bdg-black">Vacated</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="padding:20px; text-align:center; color:#888; font-size:0.82rem;">No history yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-lg-4">
+
+        <!-- OCCUPANCY VISUAL -->
+        <div class="p-card mb-3">
+            <div class="p-card-head">
+                <i class="fa-solid fa-chart-pie"></i> OCCUPANCY
+            </div>
+            <div class="p-card-body text-center">
+                <div style="font-family:'Bebas Neue',sans-serif; font-size:4rem; line-height:1; color:var(--orange);">
+                    {{ room.current_occupancy }}<span style="font-size:2rem; color:#ccc;">/{{ room.capacity }}</span>
+                </div>
+                <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:#888; margin:8px 0 12px;">
+                    Current Occupancy
+                </div>
+                <div style="background:#f3f4f6; height:8px; overflow:hidden;">
+                    {% if room.capacity > 0 %}
+                    <div style="height:100%; width:{% widthratio room.current_occupancy room.capacity 100 %}%; background:{% if room.status_label == 'FULL' %}var(--orange){% elif room.status_label == 'PARTIAL' %}var(--navy){% else %}#22c55e{% endif %};"></div>
+                    {% endif %}
+                </div>
+                <div class="mt-3">
+                    <span class="bdg bdg-{{ room.status_color }}" style="font-size:0.75rem; padding:4px 12px;">
+                        {{ room.status_label }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK ALLOCATE (if room available) -->
+        {% if room.is_available %}
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-hand-pointer"></i> QUICK ALLOCATE
+            </div>
+            <div class="p-card-body">
+                <p style="font-size:0.8rem; color:#666; margin-bottom:12px;">
+                    Manually assign a student to this room.
+                </p>
+                <a href="{% url 'hostel:manual_allocate' %}" class="btn-p" style="width:100%; justify-content:center;">
+                    <i class="fa-solid fa-user-plus"></i> Manual Allocate
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}
