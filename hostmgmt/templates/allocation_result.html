@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="mb-4">
+    {{ batch }} Room Allocation
+</h1>
+
+<div class="row mb-4">
+
+    <div class="col-md-3">
+        <div class="card shadow border-0">
+            <div class="card-body text-center">
+                <h6>Total Students</h6>
+                <h2>{{ total_students }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0">
+            <div class="card-body text-center">
+                <h6>Allocated Students</h6>
+                <h2>{{ allocated_students }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0">
+            <div class="card-body text-center">
+                <h6>Total Rooms Used</h6>
+                <h2>{{ rooms_used }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0">
+            <div class="card-body text-center">
+                <h6>Remaining Capacity</h6>
+                <h2>{{ remaining_capacity }}</h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row">
+
+    {% for room, students in allocations.items %}
+
+    <div class="col-md-4 mb-4">
+
+        <div class="card shadow border-0">
+
+            <div class="card-body">
+
+                <h4>Room {{ room }}</h4>
+
+                <hr>
+
+                {% for student in students %}
+
+                    <p>{{ student.name }}</p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}

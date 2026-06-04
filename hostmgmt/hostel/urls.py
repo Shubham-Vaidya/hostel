@@ -12,4 +12,13 @@ urlpatterns = [
     path('allocation/fswd/', views.fswd_allocation, name='fswd'),
     path('allocation/aiml/', views.aiml_allocation, name='aiml'),
     path('allocation/devops/', views.devops_allocation, name='devops'),
+    path(
+    'allocation/fswd/auto/',
+    views.fswd_auto_allocate,
+    name='fswd_auto_allocate'
+),path(
+    'allocation/fswd/auto/',
+    views.fswd_auto_allocate,
+    name='fswd_auto_allocate'
+),
 ]
