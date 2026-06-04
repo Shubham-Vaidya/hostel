@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Room – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_rooms %}active{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">ADD <span class="accent">ROOM</span></div>
+        <div class="pg-sub">Create a new hostel room</div>
+    </div>
+    <a href="{% url 'hostel:rooms' %}" class="btn-p-outline">
+        <i class="fa-solid fa-arrow-left"></i> Back to Rooms
+    </a>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-md-6">
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-door-open"></i> ROOM DETAILS
+    </div>
+    <div class="p-card-body">
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="p-label">Room Number</label>
+                <input type="number" name="room_number" class="p-input" placeholder="e.g. 15" required min="1">
+            </div>
+
+            <div class="mb-3">
+                <label class="p-label">Room Type</label>
+                <select name="room_type" class="p-input" required id="room-type-sel">
+                    <option value="">-- Select Type --</option>
+                    <option value="TRAINER">Trainer Room (1 person)</option>
+                    <option value="GIRLS">Girls Hostel (2 persons)</option>
+                    <option value="BOYS">Boys Hostel (2 persons)</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="p-label">Capacity</label>
+                <input type="number" name="capacity" class="p-input" id="capacity-inp" value="2" min="1" max="4" required>
+                <div style="font-size:0.72rem; color:#888; margin-top:4px;">
+                    Trainer rooms: 1. Girls/Boys rooms: 2 (default).
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn-p">
+                    <i class="fa-solid fa-plus"></i> Add Room
+                </button>
+                <a href="{% url 'hostel:rooms' %}" class="btn-p-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('room-type-sel').addEventListener('change', function() {
+    const cap = document.getElementById('capacity-inp');
+    if (this.value === 'TRAINER') cap.value = 1;
+    else if (this.value === 'GIRLS' || this.value === 'BOYS') cap.value = 2;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Room {{ room.room_number }} – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_rooms %}active{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">EDIT <span class="accent">ROOM {{ room.room_number }}</span></div>
+        <div class="pg-sub">Update room settings</div>
+    </div>
+    <a href="{% url 'hostel:room_detail' room.room_number %}" class="btn-p-outline">
+        <i class="fa-solid fa-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-md-6">
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-pen"></i> ROOM {{ room.room_number }} — {{ room.get_room_type_display }}
+    </div>
+    <div class="p-card-body">
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="p-label">Room Number</label>
+                <input type="text" class="p-input" value="{{ room.room_number }}" disabled style="background:#f3f4f6; cursor:not-allowed;">
+                <div style="font-size:0.72rem; color:#888; margin-top:4px;">Room number cannot be changed.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="p-label">Room Type</label>
+                <input type="text" class="p-input" value="{{ room.get_room_type_display }}" disabled style="background:#f3f4f6; cursor:not-allowed;">
+            </div>
+
+            <div class="mb-3">
+                <label class="p-label">Capacity</label>
+                <input type="number" name="capacity" class="p-input" value="{{ room.capacity }}" min="1" max="4" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="p-label" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" name="is_under_repair" {% if room.is_under_repair %}checked{% endif %}
+                           style="width:18px; height:18px; cursor:pointer;">
+                    Mark as Under Repair
+                </label>
+                <div style="font-size:0.72rem; color:#888; margin-top:4px;">
+                    Rooms under repair cannot accept allocations.
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-p">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                </button>
+                <a href="{% url 'hostel:room_detail' room.room_number %}" class="btn-p-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+
+{% endblock %}

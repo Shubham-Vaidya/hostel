@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Student – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_students %}active{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">ADD <span class="accent">STUDENT</span></div>
+        <div class="pg-sub">Register a new hostel student</div>
+    </div>
+    <a href="{% url 'hostel:students' %}" class="btn-p-outline">
+        <i class="fa-solid fa-arrow-left"></i> Back to Students
+    </a>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-md-7">
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-user-plus"></i> STUDENT DETAILS
+    </div>
+    <div class="p-card-body">
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="p-label">Registration ID *</label>
+                    <input type="text" name="registration_id" class="p-input"
+                           placeholder="e.g. FSWD-001" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label">Full Name *</label>
+                    <input type="text" name="full_name" class="p-input"
+                           placeholder="Full legal name" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label">Gender *</label>
+                    <select name="gender" class="p-input" required>
+                        <option value="">-- Select --</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                        <option value="O">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label">Batch *</label>
+                    <select name="batch" class="p-input" required>
+                        <option value="">-- Select --</option>
+                        <option value="FSWD">FSWD</option>
+                        <option value="AIML">AIML</option>
+                        <option value="DEVOPS">DevOps</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label">Email</label>
+                    <input type="email" name="email" class="p-input"
+                           placeholder="student@example.com">
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label">Phone</label>
+                    <input type="text" name="phone" class="p-input"
+                           placeholder="10-digit mobile number">
+                </div>
+            </div>
+
+            <div class="warn-box mt-4 mb-4" style="font-size:0.78rem;">
+                <i class="fa-solid fa-circle-info"></i>
+                Gender is used for automatic room segregation. Ensure it is accurate.
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-p">
+                    <i class="fa-solid fa-user-plus"></i> Add Student
+                </button>
+                <a href="{% url 'hostel:students' %}" class="btn-p-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+
+{% endblock %}

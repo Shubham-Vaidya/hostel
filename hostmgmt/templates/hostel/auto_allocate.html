@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Auto Allocate – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_auto %}active{% endblock %}
+
+{% block content %}
+
+<div class="pg-header">
+    <div>
+        <div class="pg-title">AUTO <span class="accent">ALLOCATE</span></div>
+        <div class="pg-sub">Automated gender-segregated room allocation</div>
+    </div>
+    <a href="{% url 'hostel:allocation_list' %}" class="btn-p-outline">
+        <i class="fa-solid fa-list-check"></i> View Allocations
+    </a>
+</div>
+
+<!-- WARNING BOX -->
+<div class="warn-box mb-4">
+    <strong><i class="fa-solid fa-triangle-exclamation"></i> Gender Segregation Rules Apply</strong><br>
+    Auto allocation strictly follows hostel rules: <strong>Girls → Rooms 7–16</strong>,
+    <strong>Boys → Rooms 17–38</strong>.
+    Trainer rooms (1–6) are excluded from student allocation.
+    Same-batch grouping is preferred but may be overridden to fill rooms.
+</div>
+
+<!-- BATCH STATUS CARDS -->
+<div class="row g-3 mb-4">
+    {% for b in batches %}
+    <div class="col-md-4">
+        <div class="p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-layer-group"></i> {{ b.label }}
+                {% if b.pending > 0 %}
+                <span class="ms-auto bdg bdg-orange" style="font-family:'Inter',sans-serif; font-size:0.7rem;">{{ b.pending }} Pending</span>
+                {% else %}
+                <span class="ms-auto bdg bdg-green" style="font-family:'Inter',sans-serif; font-size:0.7rem;">All Allocated</span>
+                {% endif %}
+            </div>
+            <div class="p-card-body text-center">
+                <div style="font-family:'Bebas Neue',sans-serif; font-size:3rem; color:{% if b.pending > 0 %}var(--orange){% else %}#16a34a{% endif %}; line-height:1;">
+                    {{ b.pending }}
+                </div>
+                <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:#888; margin-top:4px;">
+                    Students Pending
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ALLOCATION FORM -->
+<div class="row justify-content-center">
+<div class="col-md-6">
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> RUN AUTO ALLOCATION
+    </div>
+    <div class="p-card-body">
+        <form method="POST" action="{% url 'hostel:auto_allocate' %}">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="p-label">Select Batch</label>
+                <select name="batch" class="p-input">
+                    <option value="">All Batches (FSWD + AIML + DEVOPS)</option>
+                    {% for b in batches %}
+                    <option value="{{ b.code }}" {% if filter_batch == b.code %}selected{% endif %}>
+                        {{ b.label }} ({{ b.pending }} pending)
+                    </option>
+                    {% endfor %}
+                </select>
+                <div style="font-size:0.72rem; color:#888; margin-top:5px;">
+                    Leave as "All Batches" to allocate all pending students at once.
+                </div>
+            </div>
+
+            <button type="submit" class="btn-p" style="width:100%; justify-content:center; padding:14px;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Run Auto Allocation
+            </button>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+
+{% endblock %}

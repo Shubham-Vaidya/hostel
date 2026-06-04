@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Hostel Dashboard – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_dash %}active{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">HOSTEL <span class="accent">DASHBOARD</span></div>
+        <div class="pg-sub">Real-time hostel room allocation overview</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'hostel:auto_allocate' %}" class="btn-p">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto Allocate
+        </a>
+        <a href="{% url 'hostel:manual_allocate' %}" class="btn-p-outline">
+            <i class="fa-solid fa-hand-pointer"></i> Manual Allocate
+        </a>
+    </div>
+</div>
+
+<!-- STAT CARDS ROW -->
+<div class="row g-3 mb-4">
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-door-open"></i></div>
+            <div class="sc-num">{{ total_rooms }}</div>
+            <div class="sc-label">Total Rooms</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card s-orange">
+            <div class="sc-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="sc-num">{{ available_rooms }}</div>
+            <div class="sc-label">Available</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-bed"></i></div>
+            <div class="sc-num">{{ occupied_rooms }}</div>
+            <div class="sc-label">Occupied</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card s-black">
+            <div class="sc-icon"><i class="fa-solid fa-users-check"></i></div>
+            <div class="sc-num">{{ allocated }}</div>
+            <div class="sc-label">Students Allocated</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="sc-num">{{ pending }}</div>
+            <div class="sc-label">Pending</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i></div>
+            <div class="sc-num">{{ repair_rooms }}</div>
+            <div class="sc-label">Under Repair</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- BATCH ALLOCATION CARDS -->
+<div class="mb-3">
+    <div class="pg-sub" style="font-size:0.7rem; margin-bottom:12px;">BATCH ALLOCATION STATUS</div>
+</div>
+
+<div class="row g-3 mb-4">
+    {% for b in batch_stats %}
+    <div class="col-md-4">
+        <div class="mod-card p-card">
+            <div class="p-card-head">
+                <i class="fa-solid fa-layer-group"></i> {{ b.label }} BATCH
+            </div>
+            <div class="p-card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-4 text-center">
+                        <div style="font-family:'Bebas Neue',sans-serif; font-size:2.2rem; line-height:1;">{{ b.total }}</div>
+                        <div style="font-size:0.62rem; text-transform:uppercase; letter-spacing:1px; color:#888;">Total</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div style="font-family:'Bebas Neue',sans-serif; font-size:2.2rem; line-height:1; color:#16a34a;">{{ b.allocated }}</div>
+                        <div style="font-size:0.62rem; text-transform:uppercase; letter-spacing:1px; color:#888;">Allocated</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div style="font-family:'Bebas Neue',sans-serif; font-size:2.2rem; line-height:1; color:var(--orange);">{{ b.pending }}</div>
+                        <div style="font-size:0.62rem; text-transform:uppercase; letter-spacing:1px; color:#888;">Pending</div>
+                    </div>
+                </div>
+                {% if b.total > 0 %}
+                <div style="background:#f3f4f6; height:6px; border-radius:0; margin-bottom:14px; overflow:hidden;">
+                    <div style="background:var(--orange); height:100%; width:{% if b.total > 0 %}{% widthratio b.allocated b.total 100 %}{% else %}0{% endif %}%;"></div>
+                </div>
+                {% endif %}
+                <a href="{% url 'hostel:auto_allocate_batch' b.code %}" class="btn-p btn-p-sm" style="width:100%; justify-content:center;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Allocate {{ b.label }}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="warn-box">No batch data available. <a href="{% url 'hostel:add_student' %}">Add students</a> to get started.</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-bolt"></i> QUICK ACTIONS
+    </div>
+    <div class="p-card-body d-flex flex-wrap gap-2">
+        <a href="{% url 'hostel:auto_allocate' %}" class="btn-p">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto Allocate All
+        </a>
+        <a href="{% url 'hostel:manual_allocate' %}" class="btn-p-outline">
+            <i class="fa-solid fa-hand-pointer"></i> Manual Allocate
+        </a>
+        <a href="{% url 'hostel:rooms' %}" class="btn-p-outline">
+            <i class="fa-solid fa-door-open"></i> View Rooms
+        </a>
+        <a href="{% url 'hostel:students' %}" class="btn-p-outline">
+            <i class="fa-solid fa-users"></i> View Students
+        </a>
+        <a href="{% url 'hostel:allocation_list' %}" class="btn-p-outline">
+            <i class="fa-solid fa-list-check"></i> All Allocations
+        </a>
+    </div>
+</div>
+
+{% endblock %}

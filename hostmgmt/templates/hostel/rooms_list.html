@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Room Master – PRAVAAH{% endblock %}
+{% block sb_hostel_open %}open{% endblock %}
+{% block sb_h_rooms %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.room-card {
+    background: #fff;
+    border: 3px solid var(--black);
+    padding: 1rem 0.8rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    height: 100%;
+}
+.room-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--orange);
+}
+.room-card .room-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    color: var(--black);
+    line-height: 1;
+}
+.room-card .room-type {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    margin: 4px 0;
+}
+.room-card .room-occ {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 8px;
+}
+.room-card.status-empty   { border-color: #22c55e; }
+.room-card.status-partial { border-color: var(--navy); }
+.room-card.status-full    { border-color: var(--orange); }
+.room-card.status-repair  { border-color: #9ca3af; background: #f3f4f6; }
+
+.filter-btn {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border: 2px solid var(--black);
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--black);
+    transition: all 0.15s;
+    display: inline-block;
+}
+.filter-btn:hover, .filter-btn.active {
+    background: var(--black);
+    color: #fff;
+}
+.filter-btn.active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: #fff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">ROOM <span class="accent">MASTER</span></div>
+        <div class="pg-sub">All hostel rooms — click a room card to view details</div>
+    </div>
+    <a href="{% url 'hostel:add_room' %}" class="btn-p">
+        <i class="fa-solid fa-plus"></i> Add Room
+    </a>
+</div>
+
+<!-- FILTER BAR -->
+<div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+    <span style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:#888; font-weight:700; margin-right:4px;">Filter:</span>
+    <a href="{% url 'hostel:rooms' %}" class="filter-btn {% if filter_type == 'all' %}active{% endif %}">
+        <i class="fa-solid fa-th"></i> All
+    </a>
+    <a href="{% url 'hostel:rooms' %}?filter=girls" class="filter-btn {% if filter_type == 'girls' %}active{% endif %}">
+        <i class="fa-solid fa-venus"></i> Girls (7–16)
+    </a>
+    <a href="{% url 'hostel:rooms' %}?filter=boys" class="filter-btn {% if filter_type == 'boys' %}active{% endif %}">
+        <i class="fa-solid fa-mars"></i> Boys (17–38)
+    </a>
+    <a href="{% url 'hostel:rooms' %}?filter=trainer" class="filter-btn {% if filter_type == 'trainer' %}active{% endif %}">
+        <i class="fa-solid fa-chalkboard-user"></i> Trainers (1–6)
+    </a>
+    <a href="{% url 'hostel:rooms' %}?filter=repair" class="filter-btn {% if filter_type == 'repair' %}active{% endif %}" style="border-color:#9ca3af; color:#6b7280;">
+        <i class="fa-solid fa-wrench"></i> Under Repair
+    </a>
+
+    <!-- Legend -->
+    <div class="ms-auto d-flex gap-3 align-items-center flex-wrap">
+        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:12px; height:12px; background:#22c55e; border:1.5px solid #22c55e;"></span> Empty
+        </span>
+        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:12px; height:12px; background:var(--navy);"></span> Partial
+        </span>
+        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:12px; height:12px; background:var(--orange);"></span> Full
+        </span>
+        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:12px; height:12px; background:#9ca3af;"></span> Repair
+        </span>
+    </div>
+</div>
+
+<!-- ROOM GRID -->
+{% if rooms %}
+<div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+    {% for room in rooms %}
+    <div class="col">
+        <div class="room-card status-{{ room.status_css }}"
+             onclick="location.href='{% url 'hostel:room_detail' room.room_number %}'">
+            <div class="room-num">{{ room.room_number }}</div>
+            <div class="room-type">{{ room.get_room_type_display }}</div>
+            <div class="room-occ">{{ room.current_occupancy }}/{{ room.capacity }}</div>
+            <span class="bdg bdg-{{ room.status_color }}">{{ room.status_label }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="warn-box text-center py-5">
+    <i class="fa-solid fa-door-closed" style="font-size:3rem; color:#ccc; display:block; margin-bottom:12px;"></i>
+    No rooms found. <a href="{% url 'hostel:add_room' %}">Add a room</a> or
+    run <code>python manage.py seed_rooms</code> to seed 38 rooms.
+</div>
+{% endif %}
+
+{% endblock %}

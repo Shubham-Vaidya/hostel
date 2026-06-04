@@ -1,0 +1,14 @@
+# PRAVAAH – Hostel Room Allocation Module
+# Requirements File
+#
+# Install all: pip install -r requirements.txt
+#
+# To switch to MySQL, also run: pip install mysqlclient
+
+Django>=6.0,<7.0
+
+# Database drivers
+# mysqlclient>=2.2.0    # Uncomment when connecting to MySQL
+
+# Optional utilities
+# pillow>=10.0.0        # For image handling (if needed later)
