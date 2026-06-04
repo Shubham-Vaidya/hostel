@@ -2,36 +2,113 @@
 
 {% block content %}
 
-<h2 class="mb-4">Dashboard</h2>
+<div class="container-fluid">
 
-<div class="row">
+    <div class="mb-5">
+        <h1 class="page-title">
+            Batch <span>Allocation</span>
+        </h1>
 
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Total Rooms</h5>
-            <h2>120</h2>
-        </div>
+        <p class="page-subtitle">
+            Select a batch to begin hostel room allocation.
+        </p>
     </div>
 
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Occupied Rooms</h5>
-            <h2>85</h2>
-        </div>
-    </div>
+    <div class="row g-4">
 
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Available Rooms</h5>
-            <h2>35</h2>
-        </div>
-    </div>
+        <!-- FSWD -->
 
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Students</h5>
-            <h2>220</h2>
+        <div class="col-md-4">
+
+            <div class="card shadow-lg border-0 h-100">
+
+                <div class="card-body text-center p-5">
+
+                    <h2 class="fw-bold">
+                        FSWD
+                    </h2>
+
+                    <p class="text-muted">
+                        Full Stack Web Development
+                    </p>
+
+                    <h3 class="my-4">
+                        45 Students
+                    </h3>
+
+                    <a href="/allocation/fswd/"
+                       class="btn btn-warning">
+                        View Batch
+                    </a>
+
+                </div>
+
+            </div>
+
         </div>
+
+        <!-- AIML -->
+
+        <div class="col-md-4">
+
+            <div class="card shadow-lg border-0 h-100">
+
+                <div class="card-body text-center p-5">
+
+                    <h2 class="fw-bold">
+                        AI / ML
+                    </h2>
+
+                    <p class="text-muted">
+                        Artificial Intelligence & Machine Learning
+                    </p>
+
+                    <h3 class="my-4">
+                        38 Students
+                    </h3>
+
+                    <a href="/allocation/aiml/"
+                       class="btn btn-warning">
+                        View Batch
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- DEVOPS -->
+
+        <div class="col-md-4">
+
+            <div class="card shadow-lg border-0 h-100">
+
+                <div class="card-body text-center p-5">
+
+                    <h2 class="fw-bold">
+                        DEVOPS
+                    </h2>
+
+                    <p class="text-muted">
+                        Development & Operations
+                    </p>
+
+                    <h3 class="my-4">
+                        42 Students
+                    </h3>
+
+                    <a href="/allocation/devops/"
+                       class="btn btn-warning">
+                        View Batch
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
 </div>
