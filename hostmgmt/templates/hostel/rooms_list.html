@@ -1,145 +1,375 @@
-{% extends 'base.html' %}
-
-{% block title %}Room Master – PRAVAAH{% endblock %}
+{% extends "base.html" %}
+{% block title %}Room Management – PRAVAAH{% endblock %}
 {% block sb_hostel_open %}open{% endblock %}
 {% block sb_h_rooms %}active{% endblock %}
 
 {% block extra_css %}
 <style>
-.room-card {
-    background: #fff;
-    border: 3px solid var(--black);
-    padding: 1rem 0.8rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    position: relative;
-    height: 100%;
-}
-.room-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0 var(--orange);
-}
-.room-card .room-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.2rem;
-    color: var(--black);
-    line-height: 1;
-}
-.room-card .room-type {
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #888;
-    margin: 4px 0;
-}
-.room-card .room-occ {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--black);
-    margin-bottom: 8px;
-}
-.room-card.status-empty   { border-color: #22c55e; }
-.room-card.status-partial { border-color: var(--navy); }
-.room-card.status-full    { border-color: var(--orange); }
-.room-card.status-repair  { border-color: #9ca3af; background: #f3f4f6; }
+/* ── Status badge colours for rooms table ── */
+.bdg-available   { color:#16a34a; border-color:#16a34a; background:#f0fdf4; }
+.bdg-occupied    { color:#E56A35; border-color:#E56A35; background:#fff8f5; }
+.bdg-maintenance { color:#dc2626; border-color:#dc2626; background:#fef2f2; }
 
-.filter-btn {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 6px 14px;
-    border: 2px solid var(--black);
-    background: transparent;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--black);
-    transition: all 0.15s;
-    display: inline-block;
+/* ── Capacity bar ── */
+.cap-bar { height:5px; background:#e5e7eb; border-radius:2px; margin-top:4px; overflow:hidden; }
+.cap-fill { height:100%; border-radius:2px; background:var(--orange); transition:width 0.4s; }
+.cap-fill.full { background:#dc2626; }
+
+/* ── Room modal ── */
+.modal-roommate-row {
+    padding:8px 0;
+    border-bottom:1px solid #f3f4f6;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:0.82rem;
 }
-.filter-btn:hover, .filter-btn.active {
-    background: var(--black);
-    color: #fff;
+.modal-roommate-row:last-child { border-bottom:none; }
+.rm-avatar {
+    width:30px; height:30px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:0.7rem;
+    font-weight:700; background:#fff3ee; color:var(--orange);
+    border:1.5px solid var(--orange); flex-shrink:0;
 }
-.filter-btn.active {
-    background: var(--orange);
-    border-color: var(--orange);
-    color: #fff;
+.filter-chip {
+    display:inline-block;
+    padding:4px 12px;
+    font-size:0.68rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    border:2px solid var(--black);
+    cursor:pointer;
+    text-decoration:none;
+    color:var(--black);
+    transition:all 0.15s;
+    background:#fff;
 }
+.filter-chip:hover, .filter-chip.active { background:var(--black); color:#fff; }
+.filter-chip.active-orange { background:var(--orange); border-color:var(--orange); color:#fff; }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<!-- PAGE HEADER -->
+<!-- ── Page Header ── -->
 <div class="pg-header">
     <div>
-        <div class="pg-title">ROOM <span class="accent">MASTER</span></div>
-        <div class="pg-sub">All hostel rooms — click a room card to view details</div>
+        <div class="pg-title">ROOM <span class="accent">MANAGEMENT</span></div>
+        <div class="pg-sub">Admin view — all hostel rooms with live occupancy</div>
     </div>
-    <a href="{% url 'hostel:add_room' %}" class="btn-p">
-        <i class="fa-solid fa-plus"></i> Add Room
-    </a>
+    <button class="btn-p" data-bs-toggle="modal" data-bs-target="#addRoomModal" id="btn-add-room">
+        <i class="fa-solid fa-plus"></i> ADD ROOM
+    </button>
 </div>
 
-<!-- FILTER BAR -->
-<div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
-    <span style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:#888; font-weight:700; margin-right:4px;">Filter:</span>
-    <a href="{% url 'hostel:rooms' %}" class="filter-btn {% if filter_type == 'all' %}active{% endif %}">
-        <i class="fa-solid fa-th"></i> All
-    </a>
-    <a href="{% url 'hostel:rooms' %}?filter=girls" class="filter-btn {% if filter_type == 'girls' %}active{% endif %}">
-        <i class="fa-solid fa-venus"></i> Girls (7–16)
-    </a>
-    <a href="{% url 'hostel:rooms' %}?filter=boys" class="filter-btn {% if filter_type == 'boys' %}active{% endif %}">
-        <i class="fa-solid fa-mars"></i> Boys (17–38)
-    </a>
-    <a href="{% url 'hostel:rooms' %}?filter=trainer" class="filter-btn {% if filter_type == 'trainer' %}active{% endif %}">
-        <i class="fa-solid fa-chalkboard-user"></i> Trainers (1–6)
-    </a>
-    <a href="{% url 'hostel:rooms' %}?filter=repair" class="filter-btn {% if filter_type == 'repair' %}active{% endif %}" style="border-color:#9ca3af; color:#6b7280;">
-        <i class="fa-solid fa-wrench"></i> Under Repair
-    </a>
-
-    <!-- Legend -->
-    <div class="ms-auto d-flex gap-3 align-items-center flex-wrap">
-        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
-            <span style="display:inline-block; width:12px; height:12px; background:#22c55e; border:1.5px solid #22c55e;"></span> Empty
-        </span>
-        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
-            <span style="display:inline-block; width:12px; height:12px; background:var(--navy);"></span> Partial
-        </span>
-        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
-            <span style="display:inline-block; width:12px; height:12px; background:var(--orange);"></span> Full
-        </span>
-        <span style="font-size:0.68rem; color:#888; display:flex; align-items:center; gap:5px;">
-            <span style="display:inline-block; width:12px; height:12px; background:#9ca3af;"></span> Repair
-        </span>
-    </div>
-</div>
-
-<!-- ROOM GRID -->
-{% if rooms %}
-<div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
-    {% for room in rooms %}
-    <div class="col">
-        <div class="room-card status-{{ room.status_css }}"
-             onclick="location.href='{% url 'hostel:room_detail' room.room_number %}'">
-            <div class="room-num">{{ room.room_number }}</div>
-            <div class="room-type">{{ room.get_room_type_display }}</div>
-            <div class="room-occ">{{ room.current_occupancy }}/{{ room.capacity }}</div>
-            <span class="bdg bdg-{{ room.status_color }}">{{ room.status_label }}</span>
+<!-- ── Stat Cards (alternating: white / orange / black / white) ── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-door-open"></i></div>
+            <div class="sc-num">{{ total_rooms }}</div>
+            <div class="sc-label">Total Rooms</div>
         </div>
     </div>
-    {% endfor %}
+    <div class="col-6 col-md-3">
+        <div class="stat-card s-orange">
+            <div class="sc-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="sc-num">{{ available }}</div>
+            <div class="sc-label">Available</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card s-black">
+            <div class="sc-icon"><i class="fa-solid fa-bed"></i></div>
+            <div class="sc-num">{{ occupied }}</div>
+            <div class="sc-label">Occupied</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="sc-icon"><i class="fa-solid fa-wrench" style="color:#dc2626;"></i></div>
+            <div class="sc-num">{{ maintenance }}</div>
+            <div class="sc-label">Under Maintenance</div>
+        </div>
+    </div>
 </div>
-{% else %}
-<div class="warn-box text-center py-5">
-    <i class="fa-solid fa-door-closed" style="font-size:3rem; color:#ccc; display:block; margin-bottom:12px;"></i>
-    No rooms found. <a href="{% url 'hostel:add_room' %}">Add a room</a> or
-    run <code>python manage.py seed_rooms</code> to seed 38 rooms.
-</div>
-{% endif %}
 
+<!-- ── Filter Bar ── -->
+<form method="get" class="d-flex flex-wrap gap-2 mb-4 align-items-end" id="filterForm">
+    <div>
+        <label class="p-label">Room Type</label>
+        <select name="room_type" class="p-input" style="width:auto; min-width:130px;" onchange="this.form.submit()">
+            <option value="">All Types</option>
+            {% for rt in room_types %}
+            <option value="{{ rt }}" {% if filter_room_type == rt %}selected{% endif %}>{{ rt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label class="p-label">Status</label>
+        <select name="status" class="p-input" style="width:auto; min-width:150px;" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if filter_status or filter_room_type %}
+    <div>
+        <a href="{% url 'hostel:rooms' %}" class="btn-p-outline btn-p-sm" id="btn-clear-filter">
+            <i class="fa-solid fa-xmark"></i> Clear
+        </a>
+    </div>
+    {% endif %}
+</form>
+
+<!-- ── Rooms Table ── -->
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-door-open"></i>
+        ROOMS — {{ rooms|length }} record{% if rooms|length != 1 %}s{% endif %}
+    </div>
+    <div class="p-table-wrap">
+        <table class="p-table" id="roomsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Room No</th>
+                    <th>Type</th>
+                    <th>Capacity</th>
+                    <th>Occupied Beds</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for room in rooms %}
+                <tr>
+                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <td>
+                        <span style="font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:1px;">
+                            {{ room.room_no }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="bdg bdg-navy">{{ room.room_type }}</span>
+                    </td>
+                    <td style="text-align:center;">{{ room.capacity }}</td>
+                    <td style="text-align:center;">
+                        <strong>{{ room.occupied_beds }}</strong>
+                        <span style="color:#aaa;">/ {{ room.capacity }}</span>
+                    </td>
+                    <td style="min-width:100px;">
+                        {% if room.capacity > 0 %}
+                        <div style="font-size:0.68rem; color:#888; margin-bottom:2px;">
+                            {% widthratio room.occupied_beds room.capacity 100 %}%
+                        </div>
+                        <div class="cap-bar">
+                            <div class="cap-fill {% if room.occupied_beds >= room.capacity %}full{% endif %}"
+                                 style="width:{% widthratio room.occupied_beds room.capacity 100 %}%"></div>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if room.status == 'Available' %}
+                            <span class="bdg bdg-available"><i class="fa-solid fa-circle-check"></i> AVAILABLE</span>
+                        {% elif room.status == 'Occupied' %}
+                            <span class="bdg bdg-occupied"><i class="fa-solid fa-bed"></i> OCCUPIED</span>
+                        {% else %}
+                            <span class="bdg bdg-maintenance"><i class="fa-solid fa-wrench"></i> MAINTENANCE</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn-p-outline btn-p-sm"
+                                onclick="viewRoom('{{ room.room_id }}','{{ room.room_no }}','{{ room.room_type }}','{{ room.capacity }}','{{ room.occupied_beds }}','{{ room.status }}')"
+                                id="btn-view-{{ room.room_id }}">
+                            <i class="fa-solid fa-eye"></i> VIEW
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center p-5" style="color:#888;">
+                        <i class="fa-solid fa-inbox fa-2x mb-2 d-block" style="color:#ccc;"></i>
+                        No rooms found. <a href="{% url 'hostel:rooms' %}">Clear filters</a> or add a room.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ROOM DETAIL MODAL -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="roomDetailModal" tabindex="-1" aria-labelledby="roomDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border:3px solid #000; border-radius:0;">
+            <!-- header -->
+            <div class="modal-header" style="background:#0a0a0a; border-bottom:none; padding:16px 24px;">
+                <div>
+                    <h5 class="modal-title" id="roomDetailModalLabel"
+                        style="font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:#fff; letter-spacing:2px;">
+                        ROOM <span style="color:#E56A35;" id="modalRoomNo">—</span>
+                    </h5>
+                    <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:rgba(255,255,255,0.4);">
+                        Room Details &amp; Allocated Students
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <!-- body -->
+            <div class="modal-body p-4">
+                <!-- Room info row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-4">
+                        <div class="p-label">Room Type</div>
+                        <div style="font-weight:700;" id="modalRoomType">—</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-label">Capacity</div>
+                        <div style="font-weight:700;" id="modalCapacity">—</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-label">Status</div>
+                        <div id="modalStatus">—</div>
+                    </div>
+                </div>
+
+                <div class="p-label mb-2" style="border-bottom:1px solid #eee; padding-bottom:6px;">
+                    CURRENTLY ALLOCATED STUDENTS
+                    <span id="modalOccBadge" class="bdg bdg-navy ms-2"></span>
+                </div>
+
+                <!-- Dynamic occupants list -->
+                <div id="modalOccupantsList">
+                    <div class="text-center p-4" style="color:#aaa;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                    </div>
+                </div>
+            </div>
+            <!-- footer -->
+            <div class="modal-footer" style="border-top:2px solid #f3f4f6; padding:12px 24px;">
+                <button type="button" class="btn-p-outline btn-p-sm" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ADD ROOM MODAL -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="addRoomModal" tabindex="-1" aria-labelledby="addRoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border:3px solid #000; border-radius:0;">
+            <div class="modal-header" style="background:#0a0a0a; border-bottom:none; padding:16px 24px;">
+                <h5 class="modal-title" id="addRoomModalLabel"
+                    style="font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:#fff; letter-spacing:2px;">
+                    ADD <span style="color:#E56A35;">ROOM</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'hostel:rooms' %}" id="addRoomForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_room">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="p-label" for="modal_room_no">Room Number</label>
+                        <input type="text" name="room_no" id="modal_room_no" class="p-input"
+                               placeholder="e.g. A101, B202" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="p-label" for="modal_room_type">Room Type</label>
+                        <select name="room_type" id="modal_room_type" class="p-input" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="Single">Single (1 bed)</option>
+                            <option value="Double">Double (2 beds)</option>
+                            <option value="Triple">Triple (3 beds)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="p-label" for="modal_capacity">Capacity</label>
+                        <input type="number" name="capacity" id="modal_capacity" class="p-input"
+                               min="1" max="10" value="2" required>
+                        <div style="font-size:0.72rem; color:#888; margin-top:4px;">
+                            Number of beds / students that can occupy this room.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:2px solid #f3f4f6; padding:12px 24px;">
+                    <button type="submit" class="btn-p" id="btn-confirm-add-room">
+                        <i class="fa-solid fa-plus"></i> ADD ROOM
+                    </button>
+                    <button type="button" class="btn-p-outline ms-2" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark"></i> CANCEL
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Sync capacity when room type changes in Add Room modal ──
+document.getElementById('modal_room_type').addEventListener('change', function() {
+    const cap = {'Single': 1, 'Double': 2, 'Triple': 3};
+    if (cap[this.value]) document.getElementById('modal_capacity').value = cap[this.value];
+});
+
+// ── View Room modal: populate from server via AJAX ──
+function viewRoom(roomId, roomNo, roomType, capacity, occupiedBeds, status) {
+    document.getElementById('modalRoomNo').textContent   = roomNo;
+    document.getElementById('modalRoomType').textContent = roomType;
+    document.getElementById('modalCapacity').textContent = capacity + ' beds';
+    document.getElementById('modalOccBadge').textContent = occupiedBeds + ' / ' + capacity + ' occupied';
+
+    // Set status badge
+    const statusEl  = document.getElementById('modalStatus');
+    const colorMap  = {Available:'bdg-available', Occupied:'bdg-occupied', Maintenance:'bdg-maintenance'};
+    statusEl.innerHTML = '<span class="bdg ' + (colorMap[status] || 'bdg-navy') + '">' + status.toUpperCase() + '</span>';
+
+    // Fetch occupants via AJAX
+    const listEl = document.getElementById('modalOccupantsList');
+    listEl.innerHTML = '<div class="text-center p-4" style="color:#aaa;"><i class="fa-solid fa-spinner fa-spin"></i> Loading…</div>';
+
+    fetch(`/hostel/rooms/detail/${roomId}/json/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.occupants.length === 0) {
+                listEl.innerHTML = '<div class="text-center p-4" style="color:#aaa;"><i class="fa-solid fa-user-slash fa-2x mb-2 d-block" style="color:#ddd;"></i>No students currently allocated to this room.</div>';
+            } else {
+                let html = '';
+                data.occupants.forEach(function(o, i) {
+                    const initial = o.name ? o.name[0].toUpperCase() : '?';
+                    html += `<div class="modal-roommate-row">
+                        <div class="rm-avatar">${initial}</div>
+                        <div style="flex:1;">
+                            <div style="font-weight:700;">${o.name}</div>
+                            <div style="font-size:0.72rem; color:#888;">
+                                <span>${o.admission}</span>
+                                &nbsp;·&nbsp;
+                                <span>Bed: <strong>${o.bed}</strong></span>
+                                &nbsp;·&nbsp;
+                                <span>${o.gender}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                listEl.innerHTML = html;
+            }
+        })
+        .catch(() => {
+            listEl.innerHTML = '<div class="warn-box">Could not load occupant details.</div>';
+        });
+
+    var modal = new bootstrap.Modal(document.getElementById('roomDetailModal'));
+    modal.show();
+}
+</script>
 {% endblock %}

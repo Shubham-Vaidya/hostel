@@ -1,17 +1,10 @@
 from django import forms
-from .models import Room, Student
 
-# ── Choice constants (defined here, not imported from models) ──────────────────
+# ── Choice constants (defined locally — NOT imported from models) ──────────────
 GENDER_CHOICES = [
     ('Male',   'Male'),
     ('Female', 'Female'),
     ('Other',  'Other'),
-]
-
-BATCH_CHOICES = [
-    ('FSWD',   'FSWD'),
-    ('AIML',   'AIML'),
-    ('DEVOPS', 'DevOps'),
 ]
 
 ROOM_TYPE_CHOICES = [
@@ -30,60 +23,48 @@ COMPLAINT_TYPE_CHOICES = [
 ]
 
 
-# ── Existing Forms ─────────────────────────────────────────────────────────────
+# ── Student Add Form (plain form — not ModelForm, avoids field-name issues) ───
 
-class StudentForm(forms.ModelForm):
-    class Meta:
-        model = Student
-        fields = ['registration_id', 'full_name', 'gender', 'batch', 'email', 'phone']
-        widgets = {
-            'registration_id': forms.TextInput(attrs={
-                'class': 'p-input',
-                'placeholder': 'e.g. FSWD-001',
-            }),
-            'full_name': forms.TextInput(attrs={
-                'class': 'p-input',
-                'placeholder': 'Full name',
-            }),
-            'gender': forms.Select(
-                attrs={'class': 'p-input'},
-                choices=[('', '-- Select Gender --')] + list(GENDER_CHOICES),
-            ),
-            'batch': forms.Select(
-                attrs={'class': 'p-input'},
-                choices=[('', '-- Select Batch --')] + list(BATCH_CHOICES),
-            ),
-            'email': forms.EmailInput(attrs={
-                'class': 'p-input',
-                'placeholder': 'student@example.com',
-            }),
-            'phone': forms.TextInput(attrs={
-                'class': 'p-input',
-                'placeholder': '10-digit phone number',
-            }),
-        }
+class StudentForm(forms.Form):
+    admission_no  = forms.CharField(
+        max_length=30, required=False,
+        widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'e.g. CE24001'})
+    )
+    first_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'First name'})
+    )
+    last_name = forms.CharField(
+        max_length=100, required=False,
+        widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'Last name'})
+    )
+    gender = forms.ChoiceField(
+        choices=[('', '-- Select Gender --')] + GENDER_CHOICES,
+        widget=forms.Select(attrs={'class': 'p-input'})
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'p-input', 'placeholder': 'student@example.com'})
+    )
+    mobile = forms.CharField(
+        max_length=15, required=False,
+        widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': '10-digit mobile'})
+    )
 
 
-class RoomForm(forms.ModelForm):
-    class Meta:
-        model = Room
-        fields = ['room_number', 'room_type', 'capacity', 'is_under_repair']
-        widgets = {
-            'room_number': forms.NumberInput(attrs={
-                'class': 'p-input',
-                'placeholder': 'e.g. 15',
-            }),
-            'room_type': forms.Select(
-                attrs={'class': 'p-input'},
-                choices=[('', '-- Select Type --')] + list(ROOM_TYPE_CHOICES),
-            ),
-            'capacity': forms.NumberInput(attrs={
-                'class': 'p-input',
-                'min': 1,
-                'max': 4,
-            }),
-            'is_under_repair': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
+class RoomForm(forms.Form):
+    room_no   = forms.CharField(
+        max_length=20,
+        widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'e.g. A101'})
+    )
+    room_type = forms.ChoiceField(
+        choices=[('', '-- Select Type --')] + ROOM_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'p-input'})
+    )
+    capacity = forms.IntegerField(
+        min_value=1, max_value=10,
+        widget=forms.NumberInput(attrs={'class': 'p-input'})
+    )
 
 
 class ManualAllocationForm(forms.Form):
@@ -100,8 +81,7 @@ class ComplaintForm(forms.Form):
     )
     description = forms.CharField(
         widget=forms.Textarea(attrs={
-            'class': 'p-input',
-            'rows': 5,
+            'class': 'p-input', 'rows': 5,
             'placeholder': 'Describe the issue in detail...',
         })
     )
@@ -112,7 +92,7 @@ class GatePassForm(forms.Form):
         max_length=200,
         widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'Enter destination'})
     )
-    purpose           = forms.CharField(
+    purpose = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'p-input', 'rows': 3, 'placeholder': 'Purpose of visit'})
     )
     out_date          = forms.DateField(
@@ -128,25 +108,22 @@ class GatePassForm(forms.Form):
         widget=forms.TimeInput(attrs={'class': 'p-input', 'type': 'time'})
     )
     emergency_contact = forms.CharField(
-        max_length=20,
-        required=False,
+        max_length=15, required=False,
         widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'Emergency contact number'})
     )
 
 
 class VisitorForm(forms.Form):
     visitor_name = forms.CharField(
-        max_length=200,
+        max_length=100,
         widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'Visitor full name'})
     )
     relationship = forms.CharField(
-        max_length=100,
-        required=False,
+        max_length=50, required=False,
         widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': 'e.g. Parent, Sibling'})
     )
     mobile = forms.CharField(
-        max_length=20,
-        required=False,
+        max_length=15, required=False,
         widget=forms.TextInput(attrs={'class': 'p-input', 'placeholder': '10-digit mobile number'})
     )
     checkin = forms.DateTimeField(

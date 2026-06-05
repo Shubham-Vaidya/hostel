@@ -460,31 +460,29 @@
         </li>
     </ul>
 
-    <div class="top-user">
+    <div class="top-user d-flex align-items-center gap-3">
         <i class="fa-solid fa-circle-user"></i>
-        {% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% else %}Guest{% endif %}
+        <span>GUEST</span>
     </div>
 </div>
 
 <!-- ═══════════════════════ SIDEBAR ══════════════════════ -->
 <div class="sidebar">
 
-    <div class="sb-section">Navigation</div>
+    <!-- ═══════════ NAVIGATION ═══════════ -->
+    <div class="sb-section">Admin Navigation</div>
 
-    <a href="/" class="sb-item {% block sb_home %}{% endblock %}">
-        <i class="fa-solid fa-house"></i> Home
+    <a href="{% url 'hostel:dashboard' %}" class="sb-item {% block sb_h_dash %}{% endblock %}">
+        <i class="fa-solid fa-gauge"></i> Dashboard
     </a>
 
-    <div class="sb-section">Modules</div>
-
+    <!-- HOSTEL module -->
+    <div class="sb-section">Hostel</div>
     <button class="sb-item" onclick="toggleSub('s_hostel', this)">
-        <i class="fa-solid fa-building"></i> Hostel
+        <i class="fa-solid fa-building"></i> Room Management
         <i class="fa-solid fa-chevron-down sb-arrow" id="arr_hostel"></i>
     </button>
     <div class="sb-sub {% block sb_hostel_open %}{% endblock %}" id="s_hostel">
-        <a href="{% url 'hostel:dashboard' %}" class="sb-item {% block sb_h_dash %}{% endblock %}">
-            <i class="fa-solid fa-gauge"></i> Dashboard
-        </a>
         <a href="{% url 'hostel:rooms' %}" class="sb-item {% block sb_h_rooms %}{% endblock %}">
             <i class="fa-solid fa-door-open"></i> Rooms
         </a>
@@ -494,9 +492,6 @@
         <a href="{% url 'hostel:manual_allocate' %}" class="sb-item {% block sb_h_manual %}{% endblock %}">
             <i class="fa-solid fa-hand-pointer"></i> Manual Allocate
         </a>
-        <a href="{% url 'hostel:allocation_list' %}" class="sb-item {% block sb_h_alloc %}{% endblock %}">
-            <i class="fa-solid fa-list-check"></i> Allocations
-        </a>
         <a href="{% url 'hostel:students' %}" class="sb-item {% block sb_h_students %}{% endblock %}">
             <i class="fa-solid fa-users"></i> Students
         </a>
@@ -505,50 +500,44 @@
         </a>
     </div>
 
-    <!-- ── MAINTENANCE section ───────────────────────── -->
-    <div class="sb-section">Maintenance</div>
+    <!-- ═══════════ ADMIN DASHBOARDS ═══════════ -->
+    <div class="sb-section">Dashboards (Admin)</div>
+    <a href="{% url 'hostel:maintenance_dashboard_view' %}" class="sb-item {% block sb_maint_dash %}{% endblock %}">
+        <i class="fa-solid fa-wrench" style="color:#E56A35;"></i> Maintenance Dashboard
+    </a>
+    <a href="{% url 'hostel:gate_pass_dashboard' %}" class="sb-item {% block sb_gp_dash %}{% endblock %}">
+        <i class="fa-solid fa-shield-halved"></i> Gate Pass Dashboard
+    </a>
+    <a href="{% url 'hostel:visitor_dashboard' %}" class="sb-item {% block sb_visitor_dash %}{% endblock %}">
+        <i class="fa-solid fa-person"></i> Visitor Dashboard
+    </a>
 
+    <!-- ═══════════ STUDENT VIEW ═══════════ -->
+    <div class="sb-section">Student View (Public)</div>
+    <a href="{% url 'hostel:my_room' %}" class="sb-item {% block sb_my_room %}{% endblock %}">
+        <i class="fa-solid fa-bed"></i> My Room View
+    </a>
+    
+    <!-- Maintenance (Student) -->
     <a href="{% url 'hostel:raise_complaint' %}" class="sb-item {% block sb_raise_complaint %}{% endblock %}">
         <i class="fa-solid fa-triangle-exclamation" style="color:#E56A35;"></i> Raise Complaint
     </a>
     <a href="{% url 'hostel:my_complaints_view' %}" class="sb-item {% block sb_my_complaints %}{% endblock %}">
         <i class="fa-solid fa-list"></i> My Complaints
     </a>
-    {% if user.is_staff %}
-    <a href="{% url 'hostel:maintenance_dashboard_view' %}" class="sb-item {% block sb_maint_dash %}{% endblock %}">
-        <i class="fa-solid fa-wrench"></i> Dashboard Admin
-    </a>
-    {% endif %}
 
-    <!-- ── GATE PASS section ───────────────────────── -->
-    <div class="sb-section">Gate Pass</div>
-
-    <a href="{% url 'hostel:request_gate_pass' %}" class="sb-item {% block sb_request_gp %}{% endblock %}">
-        <i class="fa-solid fa-id-card"></i> Request Pass
-    </a>
+    <!-- Gate Pass (Student) -->
     <a href="{% url 'hostel:my_gate_passes' %}" class="sb-item {% block sb_my_gp %}{% endblock %}">
         <i class="fa-solid fa-list"></i> My Passes
     </a>
-    {% if user.is_staff %}
-    <a href="{% url 'hostel:gate_pass_dashboard' %}" class="sb-item {% block sb_gp_dash %}{% endblock %}">
-        <i class="fa-solid fa-shield-halved"></i> Dashboard Admin
-    </a>
-    {% endif %}
 
-    <!-- ── VISITORS section ───────────────────────── -->
-    <div class="sb-section">Visitors</div>
-
+    <!-- Visitors (Student) -->
     <a href="{% url 'hostel:request_visitor_pass' %}" class="sb-item {% block sb_register_visitor %}{% endblock %}">
         <i class="fa-solid fa-person-circle-plus"></i> Register Visitor
     </a>
     <a href="{% url 'hostel:my_visitor_requests' %}" class="sb-item {% block sb_my_visitors %}{% endblock %}">
         <i class="fa-solid fa-list"></i> My Visitors
     </a>
-    {% if user.is_staff %}
-    <a href="{% url 'hostel:visitor_dashboard' %}" class="sb-item {% block sb_visitor_dash %}{% endblock %}">
-        <i class="fa-solid fa-person"></i> Dashboard Admin
-    </a>
-    {% endif %}
 
 </div>
 
