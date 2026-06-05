@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Register Visitor – PRAVAAH{% endblock %}
+{% block sb_register_visitor %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section-label {
+        font-size:0.65rem; text-transform:uppercase; letter-spacing:2px;
+        color:#888; font-weight:700; margin-bottom:12px; padding-bottom:6px;
+        border-bottom:1px solid #eee;
+    }
+    .p-input:focus {
+        border-color:#E56A35 !important;
+        box-shadow:0 0 0 3px rgba(229,106,53,0.15) !important;
+        outline:none;
+    }
+    .info-note {
+        border-left:4px solid #E56A35; background:#fff8f5;
+        padding:14px 18px; font-size:0.84rem; color:#7c3515;
+        border-radius:0 4px 4px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pg-header">
+    <div>
+        <div class="pg-title">REGISTER <span class="accent">VISITOR</span></div>
+        <div class="pg-sub">Submit a visitor registration request</div>
+    </div>
+    <a href="{% url 'hostel:my_visitor_requests' %}" class="btn-p-outline" id="btn-my-visitors">
+        <i class="fa-solid fa-list"></i> MY VISITORS
+    </a>
+</div>
+
+<div class="p-card mb-4">
+    <div class="p-card-head">
+        <i class="fa-solid fa-person-circle-plus" style="color:#E56A35;"></i>
+        VISITOR REGISTRATION FORM
+    </div>
+    <div class="p-card-body">
+        <form method="post" action="{% url 'hostel:request_visitor_pass' %}" id="visitorForm">
+            {% csrf_token %}
+
+            <div class="form-section-label">Visitor Details</div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="p-label" for="id_visitor_name">Visitor Name</label>
+                    <input type="text" name="visitor_name" id="id_visitor_name" class="p-input" placeholder="Full name of visitor" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="p-label" for="id_relationship">Relationship</label>
+                    <input type="text" name="relationship" id="id_relationship" class="p-input" placeholder="e.g. Parent, Sibling">
+                </div>
+                <div class="col-md-3">
+                    <label class="p-label" for="id_mobile">Mobile Number</label>
+                    <input type="text" name="mobile" id="id_mobile" class="p-input" placeholder="10-digit number">
+                </div>
+            </div>
+
+            <div class="form-section-label">Visit Schedule</div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="p-label" for="id_checkin">
+                        <i class="fa-regular fa-calendar" style="color:#E56A35;"></i> Check-In Date &amp; Time
+                    </label>
+                    <input type="datetime-local" name="checkin" id="id_checkin" class="p-input">
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label" for="id_checkout">
+                        <i class="fa-regular fa-calendar" style="color:#E56A35;"></i> Check-Out Date &amp; Time
+                    </label>
+                    <input type="datetime-local" name="checkout" id="id_checkout" class="p-input">
+                </div>
+                <div class="col-12">
+                    <label class="p-label" for="id_purpose">Purpose of Visit</label>
+                    <textarea name="purpose" id="id_purpose" class="p-input" rows="3" placeholder="Reason for visit..."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 flex-wrap mb-4">
+                <button type="submit" class="btn-p" id="btn-submit-visitor">
+                    <i class="fa-solid fa-paper-plane"></i> SUBMIT REQUEST
+                </button>
+                <a href="{% url 'hostel:my_visitor_requests' %}" class="btn-p-outline" id="btn-cancel-visitor">
+                    <i class="fa-solid fa-xmark"></i> CANCEL
+                </a>
+            </div>
+
+            <div class="info-note">
+                <i class="fa-solid fa-circle-info" style="color:#E56A35; margin-right:6px;"></i>
+                <em>Your visitor registration request will be reviewed by the warden before approval.</em>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

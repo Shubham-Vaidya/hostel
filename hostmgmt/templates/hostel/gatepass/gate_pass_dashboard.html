@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Gate Pass Dashboard – PRAVAAH{% endblock %}
+{% block sb_gp_dash %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .maint-stat { border:2px solid #E56A35; padding:20px 22px; height:100%; position:relative; overflow:hidden; }
+    .maint-stat::after { content:''; position:absolute; bottom:0; left:0; right:0; height:4px; background:#E56A35; }
+    .maint-stat.s-black { background:#0a0a0a; }
+    .maint-stat.s-orange { background:#E56A35; color:#fff; border-color:#c4552a; }
+    .bdg-pending  { color:#E56A35; border-color:#E56A35; background:#fff8f5; }
+    .bdg-approved { color:#16a34a; border-color:#16a34a; background:#f0fdf4; }
+    .bdg-rejected { color:#dc2626; border-color:#dc2626; background:#fef2f2; }
+    .bdg-returned { color:#2563eb; border-color:#2563eb; background:#eff6ff; }
+    .p-table tbody tr:hover { background:rgba(229,106,53,0.05); }
+    .btn-sm-action { font-size:0.7rem; padding:3px 10px; font-weight:700; text-transform:uppercase; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
+    .btn-approve { background:#16a34a; color:#fff; }
+    .btn-reject  { background:#dc2626; color:#fff; }
+    .btn-return  { background:#2563eb; color:#fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pg-header">
+    <div>
+        <div class="pg-title">GATE PASS <span class="accent">DASHBOARD</span></div>
+        <div class="pg-sub">Monitor and manage all gate pass requests</div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="maint-stat s-black">
+            <div class="sc-icon mb-2"><i class="fa-solid fa-id-card" style="color:#E56A35;font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem;color:#fff;">{{ total }}</div>
+            <div class="sc-label" style="color:rgba(255,255,255,0.6);">Total Passes</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="maint-stat" style="background:#fff;">
+            <div class="sc-icon mb-2"><i class="fa-regular fa-clock" style="color:#E56A35;font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem;">{{ pending }}</div>
+            <div class="sc-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="maint-stat" style="background:#fff;">
+            <div class="sc-icon mb-2"><i class="fa-solid fa-check" style="color:#16a34a;font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem;">{{ approved }}</div>
+            <div class="sc-label">Approved</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="maint-stat s-orange">
+            <div class="sc-icon mb-2"><i class="fa-solid fa-rotate-left" style="color:#fff;font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem;color:#fff;">{{ returned }}</div>
+            <div class="sc-label" style="color:rgba(255,255,255,0.85);">Returned</div>
+        </div>
+    </div>
+</div>
+
+<div class="p-card">
+    <div class="p-card-head"><i class="fa-solid fa-shield-halved"></i> ALL GATE PASSES</div>
+    <div class="p-table-wrap">
+        <table class="p-table" id="allGatePassesTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Destination</th>
+                    <th>Out Date</th>
+                    <th>Return Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in passes %}
+                <tr>
+                    <td><strong>GP-{{ p.pass_id|stringformat:"04d" }}</strong></td>
+                    <td style="font-size:0.8rem;">
+                        {% if p.student %}{{ p.student.full_name }}<br><small style="color:#888;">{{ p.student.registration_id }}</small>{% else %}—{% endif %}
+                    </td>
+                    <td style="font-size:0.8rem;">{{ p.destination }}</td>
+                    <td style="white-space:nowrap;font-size:0.78rem;">{{ p.out_date|date:"d M Y" }}</td>
+                    <td style="white-space:nowrap;font-size:0.78rem;">{{ p.return_date|date:"d M Y" }}</td>
+                    <td>
+                        {% if p.status == 'Pending' %}
+                            <span class="bdg bdg-pending"><i class="fa-regular fa-clock"></i> PENDING</span>
+                        {% elif p.status == 'Approved' %}
+                            <span class="bdg bdg-approved"><i class="fa-solid fa-check"></i> APPROVED</span>
+                        {% elif p.status == 'Rejected' %}
+                            <span class="bdg bdg-rejected"><i class="fa-solid fa-xmark"></i> REJECTED</span>
+                        {% elif p.status == 'Returned' %}
+                            <span class="bdg bdg-returned"><i class="fa-solid fa-rotate-left"></i> RETURNED</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.status == 'Pending' %}
+                        <form method="post" action="{% url 'hostel:approve_gate_pass' p.pass_id %}" style="display:inline;">
+                            {% csrf_token %}<button type="submit" class="btn-sm-action btn-approve" id="btn-approve-gp-{{ p.pass_id }}"><i class="fa-solid fa-check"></i> Approve</button>
+                        </form>
+                        <form method="post" action="{% url 'hostel:reject_gate_pass' p.pass_id %}" style="display:inline;">
+                            {% csrf_token %}<button type="submit" class="btn-sm-action btn-reject ms-1" id="btn-reject-gp-{{ p.pass_id }}"><i class="fa-solid fa-xmark"></i> Reject</button>
+                        </form>
+                        {% elif p.status == 'Approved' %}
+                        <form method="post" action="{% url 'hostel:mark_returned' p.pass_id %}" style="display:inline;">
+                            {% csrf_token %}<button type="submit" class="btn-sm-action btn-return" id="btn-return-gp-{{ p.pass_id }}"><i class="fa-solid fa-rotate-left"></i> Returned</button>
+                        </form>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center p-4" style="color:#888;">
+                        <i class="fa-solid fa-inbox fa-2x mb-2 d-block" style="color:#ccc;"></i>No gate passes found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}My Visitor Requests – PRAVAAH{% endblock %}
+{% block sb_my_visitors %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .vp-link { color:#E56A35; font-weight:700; text-decoration:none; }
+    .vp-link:hover { text-decoration:underline; }
+
+    .bdg-pending    { color: #E56A35; border-color: #E56A35; background: #fff8f5; }
+    .bdg-approved   { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+    .bdg-rejected   { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
+
+    .p-table tbody tr:hover { background: rgba(229,106,53,0.05); }
+
+    .visitor-name { display:flex; align-items:center; gap:7px; }
+    .visitor-name i { color: #E56A35; font-size:0.85rem; }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #888;
+    }
+    .empty-state i { font-size: 3rem; color: #ccc; margin-bottom: 16px; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">MY VISITOR <span class="accent">REQUESTS</span></div>
+        <div class="pg-sub">Track the status of your visitor pass requests</div>
+    </div>
+    <a href="{% url 'hostel:request_visitor_pass' %}" class="btn-p" id="btn-new-visitor">
+        <i class="fa-solid fa-plus"></i> NEW VISITOR REQUEST
+    </a>
+</div>
+
+<!-- ── Table Card ─────────────────────────────────────────────── -->
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-list"></i> MY VISITOR REQUESTS
+    </div>
+    <div class="p-table-wrap">
+        <table class="p-table" id="visitorRequestsTable">
+            <thead>
+                <tr>
+                    <th>VP#</th>
+                    <th>Visitor Name</th>
+                    <th>Relationship</th>
+                    <th>Mobile</th>
+                    <th>Check-In</th>
+                    <th>Check-Out</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in visitors %}
+                <tr>
+                    <td>
+                        <a href="#" class="vp-link" id="vp-link-{{ v.visitor_id }}">
+                            VP-{{ v.visitor_id|stringformat:"04d" }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="visitor-name">
+                            <i class="fa-solid fa-person"></i>
+                            {{ v.visitor_name }}
+                        </span>
+                    </td>
+                    <td style="font-size:0.82rem;">{{ v.relationship|default:"—" }}</td>
+                    <td style="font-size:0.82rem;">{{ v.mobile|default:"—" }}</td>
+                    <td style="white-space:nowrap; font-size:0.78rem;">
+                        {% if v.checkin %}{{ v.checkin|date:"d M Y H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td style="white-space:nowrap; font-size:0.78rem;">
+                        {% if v.checkout %}{{ v.checkout|date:"d M Y H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td style="max-width:220px; font-size:0.8rem;">{{ v.purpose|truncatechars:50|default:"—" }}</td>
+                    <td>
+                        {% if v.status == 'Pending' %}
+                            <span class="bdg bdg-pending">
+                                <i class="fa-regular fa-clock"></i> PENDING
+                            </span>
+                        {% elif v.status == 'Approved' %}
+                            <span class="bdg bdg-approved">
+                                <i class="fa-solid fa-check"></i> APPROVED
+                            </span>
+                        {% elif v.status == 'Rejected' %}
+                            <span class="bdg bdg-rejected">
+                                <i class="fa-solid fa-xmark"></i> REJECTED
+                            </span>
+                        {% else %}
+                            <span class="bdg">{{ v.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <i class="fa-regular fa-address-card"></i>
+                            <p class="fw-600">No visitor requests yet.</p>
+                            <p style="font-size:0.82rem;">Register a visitor to track their status here.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}My Complaints – PRAVAAH{% endblock %}
+{% block sb_my_complaints %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .type-dot {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+    .type-dot i { color: #E56A35; font-size: 0.72rem; }
+
+    /* Status badges */
+    .bdg-pending    { color: #E56A35; border-color: #E56A35; background: #fff8f5; }
+    .bdg-inprogress { color: #2563eb; border-color: #2563eb; background: #eff6ff; }
+    .bdg-resolved   { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+
+    .p-table tbody tr:hover { background: rgba(229,106,53,0.05); }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #888;
+    }
+    .empty-state i { font-size: 3rem; color: #ccc; margin-bottom: 16px; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">MY <span class="accent">COMPLAINTS</span></div>
+        <div class="pg-sub">Track the status of your submitted complaints</div>
+    </div>
+    <a href="{% url 'hostel:raise_complaint' %}" class="btn-p" id="btn-raise-new">
+        <i class="fa-solid fa-plus"></i> RAISE NEW COMPLAINT
+    </a>
+</div>
+
+<!-- ── Table Card ─────────────────────────────────────────────── -->
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-list"></i> MY COMPLAINTS
+    </div>
+    <div class="p-table-wrap">
+        <table class="p-table" id="complaintsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Date Filed</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in complaints %}
+                <tr>
+                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <td>
+                        <span class="type-dot">
+                            <i class="fa-solid fa-circle-dot"></i>
+                            {{ c.complaint_type }}
+                        </span>
+                    </td>
+                    <td style="max-width:340px;">
+                        {{ c.description|truncatechars:80 }}
+                    </td>
+                    <td style="white-space:nowrap; font-size:0.8rem;">
+                        {{ c.complaint_date|date:"d M Y H:i" }}
+                    </td>
+                    <td>
+                        {% if c.status == 'Pending' %}
+                            <span class="bdg bdg-pending">
+                                <i class="fa-regular fa-clock"></i> PENDING
+                            </span>
+                        {% elif c.status == 'In Progress' %}
+                            <span class="bdg bdg-inprogress">
+                                <i class="fa-solid fa-wrench"></i> IN PROGRESS
+                            </span>
+                        {% elif c.status == 'Resolved' %}
+                            <span class="bdg bdg-resolved">
+                                <i class="fa-solid fa-check"></i> RESOLVED
+                            </span>
+                        {% else %}
+                            <span class="bdg bdg-yellow">{{ c.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class="fa-regular fa-face-smile"></i>
+                            <p class="fw-600">No complaints filed yet.</p>
+                            <p style="font-size:0.82rem;">Everything looks good! If you have any issues, raise a complaint.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

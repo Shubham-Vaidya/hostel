@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}My Gate Passes – PRAVAAH{% endblock %}
+{% block sb_my_gp %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bdg-pending  { color:#E56A35; border-color:#E56A35; background:#fff8f5; }
+    .bdg-approved { color:#16a34a; border-color:#16a34a; background:#f0fdf4; }
+    .bdg-rejected { color:#dc2626; border-color:#dc2626; background:#fef2f2; }
+    .bdg-returned { color:#2563eb; border-color:#2563eb; background:#eff6ff; }
+    .p-table tbody tr:hover { background:rgba(229,106,53,0.05); }
+    .empty-state { text-align:center; padding:60px 20px; color:#888; }
+    .empty-state i { font-size:3rem; color:#ccc; margin-bottom:16px; display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pg-header">
+    <div>
+        <div class="pg-title">MY GATE <span class="accent">PASSES</span></div>
+        <div class="pg-sub">Track the status of your gate pass requests</div>
+    </div>
+    <a href="{% url 'hostel:request_gate_pass' %}" class="btn-p" id="btn-new-gp">
+        <i class="fa-solid fa-plus"></i> NEW GATE PASS
+    </a>
+</div>
+
+<div class="p-card">
+    <div class="p-card-head"><i class="fa-solid fa-id-card"></i> MY GATE PASSES</div>
+    <div class="p-table-wrap">
+        <table class="p-table" id="myGatePassesTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Destination</th>
+                    <th>Purpose</th>
+                    <th>Out Date</th>
+                    <th>Return Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in passes %}
+                <tr>
+                    <td><strong>GP-{{ p.pass_id|stringformat:"04d" }}</strong></td>
+                    <td>{{ p.destination }}</td>
+                    <td style="max-width:200px; font-size:0.8rem;">{{ p.purpose|truncatechars:50|default:"—" }}</td>
+                    <td style="white-space:nowrap; font-size:0.8rem;">{{ p.out_date|date:"d M Y" }} {{ p.out_time|time:"H:i" }}</td>
+                    <td style="white-space:nowrap; font-size:0.8rem;">{{ p.return_date|date:"d M Y" }} {{ p.return_time|time:"H:i" }}</td>
+                    <td>
+                        {% if p.status == 'Pending' %}
+                            <span class="bdg bdg-pending"><i class="fa-regular fa-clock"></i> PENDING</span>
+                        {% elif p.status == 'Approved' %}
+                            <span class="bdg bdg-approved"><i class="fa-solid fa-check"></i> APPROVED</span>
+                        {% elif p.status == 'Rejected' %}
+                            <span class="bdg bdg-rejected"><i class="fa-solid fa-xmark"></i> REJECTED</span>
+                        {% elif p.status == 'Returned' %}
+                            <span class="bdg bdg-returned"><i class="fa-solid fa-rotate-left"></i> RETURNED</span>
+                        {% else %}
+                            <span class="bdg">{{ p.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-id-card"></i>
+                            <p class="fw-600">No gate pass requests yet.</p>
+                            <p style="font-size:0.82rem;">Request a gate pass to track it here.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

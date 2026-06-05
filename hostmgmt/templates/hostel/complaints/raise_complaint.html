@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Raise Complaint – PRAVAAH{% endblock %}
+{% block sb_raise_complaint %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: #fff;
+        border: 2px solid #E56A35;
+        box-shadow: 5px 5px 0 rgba(229,106,53,0.18);
+    }
+    .p-input:focus {
+        border-color: #E56A35 !important;
+        box-shadow: 0 0 0 3px rgba(229,106,53,0.18) !important;
+        outline: none;
+    }
+    select.p-input { border-width: 2px; border-color: #333; }
+    select.p-input:focus { border-color: #E56A35 !important; border-width: 3px; }
+    .info-note {
+        border-left: 4px solid #E56A35;
+        background: #fff8f5;
+        padding: 14px 18px;
+        font-size: 0.84rem;
+        color: #7c3515;
+        border-radius: 0 4px 4px 0;
+    }
+    .icon-label { display:flex; align-items:center; gap:6px; }
+    .icon-label i { color: #E56A35; font-size:0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">RAISE <span class="accent">COMPLAINT</span></div>
+        <div class="pg-sub">Submit a new complaint about your room or hostel facility</div>
+    </div>
+    <a href="{% url 'hostel:my_complaints_view' %}" class="btn-p-outline" id="btn-my-complaints">
+        <i class="fa-solid fa-list"></i> MY COMPLAINTS
+    </a>
+</div>
+
+<!-- ── Form Card ──────────────────────────────────────────────── -->
+<div class="p-card mb-4">
+    <div class="p-card-head">
+        <i class="fa-solid fa-triangle-exclamation" style="color:#E56A35;"></i>
+        NEW COMPLAINT
+    </div>
+    <div class="p-card-body">
+        <form method="post" action="{% url 'hostel:raise_complaint' %}" id="complaintForm">
+            {% csrf_token %}
+
+            <div class="form-card p-4 mb-4">
+
+                <!-- Complaint Type -->
+                <div class="mb-4">
+                    <label class="p-label icon-label" for="id_complaint_type">
+                        <i class="fa-solid fa-tag"></i> Complaint Type
+                    </label>
+                    <select name="complaint_type" id="id_complaint_type" class="p-input" required>
+                        <option value="">-- Select Complaint Type --</option>
+                        {% for ct in complaint_types %}
+                        <option value="{{ ct }}">{{ ct }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-4">
+                    <label class="p-label icon-label" for="id_description">
+                        <i class="fa-solid fa-pencil"></i> Description
+                    </label>
+                    <textarea name="description" id="id_description" class="p-input" rows="5"
+                        placeholder="Describe the issue in detail — room number, exact problem, when it started..."
+                        required></textarea>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-3 flex-wrap">
+                    <button type="submit" class="btn-p" id="btn-submit-complaint">
+                        <i class="fa-solid fa-paper-plane"></i> SUBMIT COMPLAINT
+                    </button>
+                    <a href="{% url 'hostel:my_complaints_view' %}" class="btn-p-outline" id="btn-cancel-complaint">
+                        <i class="fa-solid fa-xmark"></i> CANCEL
+                    </a>
+                </div>
+            </div>
+
+            <!-- Info Note -->
+            <div class="info-note">
+                <i class="fa-solid fa-circle-info" style="color:#E56A35; margin-right:6px;"></i>
+                <em>Your complaint will be reviewed by the warden. You will be notified once it is processed.</em>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

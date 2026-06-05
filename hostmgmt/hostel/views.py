@@ -1,50 +1,41 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction, models as db_models
-from .models import Room, Student, Allocation
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import (
+    Room, Student, Allocation,
+    Complaint, MaintenanceRequest, GatePass, Visitor,
+)
+from django.contrib.auth import authenticate, login, logout
 
-# NOTE: @login_required is intentionally commented out.
-# To enable, uncomment the decorator and import, and ensure
-# a login view is configured at settings.LOGIN_URL.
-# from django.contrib.auth.decorators import login_required
+# NOTE: @login_required is intentionally commented out on most views.
+# To enable, uncomment the decorator and ensure settings.LOGIN_URL is configured.
 
 
 # ── DASHBOARD ──────────────────────────────────────────────────────────────────
-
+# @login_required
 def dashboard(request):
     total_rooms     = Room.objects.count()
-    available_rooms = Room.objects.filter(is_under_repair=False).filter(
-        current_occupancy__lt=db_models.F('capacity')
-    ).count()
+    available_rooms = Room.objects.filter(is_under_repair=False, current_occupancy__lt=db_models.F('capacity')).count()
     occupied_rooms  = Room.objects.filter(current_occupancy__gt=0).count()
-    total_students  = Student.objects.count()
-    allocated       = Student.objects.filter(allocation_status='ALLOCATED').count()
-    pending         = Student.objects.filter(allocation_status='PENDING').count()
-    trainers_alloc  = Allocation.objects.filter(room__room_type='TRAINER', is_active=True).count()
     repair_rooms    = Room.objects.filter(is_under_repair=True).count()
-
-    batch_stats = []
-    for batch_code, batch_label in [('FSWD', 'FSWD'), ('AIML', 'AIML'), ('DEVOPS', 'DevOps')]:
-        b_total = Student.objects.filter(batch=batch_code).count()
-        b_alloc = Student.objects.filter(batch=batch_code, allocation_status='ALLOCATED').count()
-        batch_stats.append({
-            'code':      batch_code,
-            'label':     batch_label,
-            'total':     b_total,
-            'allocated': b_alloc,
-            'pending':   b_total - b_alloc,
-        })
+    total_students  = Student.objects.count()
+    allocated       = Allocation.objects.filter(is_active=True).count()
+    pending         = max(0, total_students - allocated)
+    trainers_alloc  = 0
+    batch_stats     = []
 
     return render(request, 'hostel/dashboard.html', {
-        'total_rooms':    total_rooms,
+        'total_rooms':     total_rooms,
         'available_rooms': available_rooms,
-        'occupied_rooms': occupied_rooms,
-        'total_students': total_students,
-        'allocated':      allocated,
-        'pending':        pending,
-        'trainers_alloc': trainers_alloc,
-        'repair_rooms':   repair_rooms,
-        'batch_stats':    batch_stats,
+        'occupied_rooms':  occupied_rooms,
+        'total_students':  total_students,
+        'allocated':       allocated,
+        'pending':         pending,
+        'trainers_alloc':  trainers_alloc,
+        'repair_rooms':    repair_rooms,
+        'batch_stats':     batch_stats,
     })
 
 
@@ -455,7 +446,7 @@ def allocation_results(request):
 
     rooms_used = len(rooms_data)
     total      = Student.objects.count()
-    allocated  = Student.objects.filter(allocation_status='ALLOCATED').count()
+    allocated  = Allocation.objects.filter(is_active=True).count()
 
     remaining_agg = Room.objects.filter(is_under_repair=False).aggregate(
         cap=db_models.Sum(db_models.F('capacity') - db_models.F('current_occupancy'))
@@ -572,3 +563,309 @@ def transfer_student(request, allocation_id):
         'alloc':           alloc,
         'available_rooms': available_rooms,
     })
+
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.username}!')
+            return redirect('hostel:dashboard')
+        else:
+            messages.error(request, 'Invalid username or password.')
+    return render(request, 'login.html')
+
+
+def logout_view(request):
+    logout(request)
+    messages.info(request, 'You have been logged out.')
+    return redirect('hostel:login')
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── COMPLAINTS MODULE ──────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def raise_complaint(request):
+    """Allow a student to submit a new complaint."""
+    if request.method == 'POST':
+        complaint_type = request.POST.get('complaint_type', '').strip()
+        description    = request.POST.get('description', '').strip()
+
+        if not complaint_type or not description:
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('hostel:raise_complaint')
+
+        # Link to student if authenticated and a student record exists
+        student = None
+        if request.user.is_authenticated:
+            student = Student.objects.filter(email=request.user.email).first()
+
+        Complaint.objects.create(
+            student=student,
+            complaint_type=complaint_type,
+            description=description,
+            status='Pending',
+        )
+        messages.success(request, 'Your complaint has been submitted. The warden will review it shortly.')
+        return redirect('hostel:my_complaints_view')
+
+    COMPLAINT_TYPES = ['Bathroom', 'Electrical', 'Cleaning', 'Pest Control', 'Furniture', 'Other']
+    return render(request, 'hostel/complaints/raise_complaint.html', {
+        'complaint_types': COMPLAINT_TYPES,
+    })
+
+
+def my_complaints_view(request):
+    """Show the current user's complaints."""
+    student = None
+    complaints = Complaint.objects.none()
+
+    if request.user.is_authenticated:
+        student = Student.objects.filter(email=request.user.email).first()
+        if student:
+            complaints = Complaint.objects.filter(student=student).order_by('-complaint_date')
+        elif request.user.is_staff:
+            complaints = Complaint.objects.all().order_by('-complaint_date')
+
+    return render(request, 'hostel/complaints/my_complaints.html', {
+        'complaints': complaints,
+    })
+
+
+def maintenance_dashboard_view(request):
+    """Admin-only: overview of all complaints."""
+    total      = Complaint.objects.count()
+    pending    = Complaint.objects.filter(status='Pending').count()
+    in_progress = Complaint.objects.filter(status='In Progress').count()
+    resolved   = Complaint.objects.filter(status='Resolved').count()
+    complaints = Complaint.objects.select_related('student', 'room').order_by('-complaint_date')
+
+    return render(request, 'hostel/complaints/maintenance_dashboard.html', {
+        'total':       total,
+        'pending':     pending,
+        'in_progress': in_progress,
+        'resolved':    resolved,
+        'complaints':  complaints,
+    })
+
+
+def complaint_detail_view(request, complaint_id):
+    """View and update a single complaint (admin)."""
+    complaint = get_object_or_404(Complaint, complaint_id=complaint_id)
+
+    if request.method == 'POST' and request.user.is_staff:
+        new_status = request.POST.get('status')
+        if new_status in ['Pending', 'In Progress', 'Resolved']:
+            complaint.status = new_status
+            complaint.save()
+            messages.success(request, f'Complaint #{complaint_id} status updated to {new_status}.')
+        return redirect('hostel:maintenance_dashboard_view')
+
+    return render(request, 'hostel/complaints/maintenance_dashboard.html', {
+        'complaint': complaint,
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── GATE PASS MODULE ───────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def request_gate_pass(request):
+    """Allow a student to request a gate pass."""
+    if request.method == 'POST':
+        try:
+            student = None
+            if request.user.is_authenticated:
+                student = Student.objects.filter(email=request.user.email).first()
+
+            GatePass.objects.create(
+                student=student,
+                room_no=request.POST.get('room_no', '').strip(),
+                destination=request.POST.get('destination', '').strip(),
+                purpose=request.POST.get('purpose', '').strip(),
+                out_date=request.POST.get('out_date'),
+                out_time=request.POST.get('out_time'),
+                return_date=request.POST.get('return_date'),
+                return_time=request.POST.get('return_time'),
+                emergency_contact=request.POST.get('emergency_contact', '').strip(),
+                status='Pending',
+            )
+            messages.success(request, 'Gate pass request submitted successfully.')
+            return redirect('hostel:my_gate_passes')
+        except Exception as e:
+            messages.error(request, f'Error submitting gate pass: {e}')
+
+    # Pre-fill student info
+    student_name = ''
+    student_id_val = ''
+    room_no = ''
+    if request.user.is_authenticated:
+        student = Student.objects.filter(email=request.user.email).first()
+        if student:
+            student_name   = student.full_name
+            student_id_val = student.registration_id
+            alloc = Allocation.objects.filter(student=student, is_active=True).first()
+            if alloc:
+                room_no = alloc.room.room_number
+
+    return render(request, 'hostel/gatepass/request_gate_pass.html', {
+        'student_name':    student_name,
+        'student_id_val':  student_id_val,
+        'room_no':         room_no,
+    })
+
+
+def my_gate_passes(request):
+    """Show the current student's gate passes."""
+    passes = GatePass.objects.none()
+    if request.user.is_authenticated:
+        student = Student.objects.filter(email=request.user.email).first()
+        if student:
+            passes = GatePass.objects.filter(student=student).order_by('-created_at')
+        elif request.user.is_staff:
+            passes = GatePass.objects.all().order_by('-created_at')
+
+    return render(request, 'hostel/gatepass/my_gate_passes.html', {
+        'passes': passes,
+    })
+
+
+def gate_pass_dashboard(request):
+    """Admin-only gate pass overview."""
+    total    = GatePass.objects.count()
+    pending  = GatePass.objects.filter(status='Pending').count()
+    approved = GatePass.objects.filter(status='Approved').count()
+    rejected = GatePass.objects.filter(status='Rejected').count()
+    returned = GatePass.objects.filter(status='Returned').count()
+    passes   = GatePass.objects.select_related('student', 'approved_by').order_by('-created_at')
+
+    return render(request, 'hostel/gatepass/gate_pass_dashboard.html', {
+        'total':    total,
+        'pending':  pending,
+        'approved': approved,
+        'rejected': rejected,
+        'returned': returned,
+        'passes':   passes,
+    })
+
+
+def gate_pass_detail(request, pass_id):
+    gp = get_object_or_404(GatePass, pass_id=pass_id)
+    return render(request, 'hostel/gatepass/request_gate_pass.html', {'gp': gp, 'view_only': True})
+
+
+def approve_gate_pass(request, pass_id):
+    gp = get_object_or_404(GatePass, pass_id=pass_id)
+    if request.method == 'POST' and request.user.is_staff:
+        gp.status      = 'Approved'
+        gp.approved_by = request.user
+        gp.approved_at = timezone.now()
+        gp.save()
+        messages.success(request, f'Gate pass #{pass_id} approved.')
+    return redirect('hostel:gate_pass_dashboard')
+
+
+def reject_gate_pass(request, pass_id):
+    gp = get_object_or_404(GatePass, pass_id=pass_id)
+    if request.method == 'POST' and request.user.is_staff:
+        gp.status = 'Rejected'
+        gp.save()
+        messages.warning(request, f'Gate pass #{pass_id} rejected.')
+    return redirect('hostel:gate_pass_dashboard')
+
+
+def mark_returned(request, pass_id):
+    gp = get_object_or_404(GatePass, pass_id=pass_id)
+    if request.method == 'POST':
+        gp.status = 'Returned'
+        gp.save()
+        messages.success(request, f'Gate pass #{pass_id} marked as returned.')
+    return redirect('hostel:gate_pass_dashboard')
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── VISITORS MODULE ────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def request_visitor_pass(request):
+    """Allow a student to register a visitor."""
+    if request.method == 'POST':
+        try:
+            student = None
+            if request.user.is_authenticated:
+                student = Student.objects.filter(email=request.user.email).first()
+
+            Visitor.objects.create(
+                student=student,
+                visitor_name=request.POST.get('visitor_name', '').strip(),
+                relationship=request.POST.get('relationship', '').strip(),
+                mobile=request.POST.get('mobile', '').strip(),
+                checkin=request.POST.get('checkin') or None,
+                checkout=request.POST.get('checkout') or None,
+                purpose=request.POST.get('purpose', '').strip(),
+                status='Pending',
+            )
+            messages.success(request, 'Visitor request submitted successfully.')
+            return redirect('hostel:my_visitor_requests')
+        except Exception as e:
+            messages.error(request, f'Error registering visitor: {e}')
+
+    return render(request, 'hostel/visitors/request_visitor_pass.html')
+
+
+def my_visitor_requests(request):
+    """Show the current student's visitor requests."""
+    visitors = Visitor.objects.none()
+    if request.user.is_authenticated:
+        student = Student.objects.filter(email=request.user.email).first()
+        if student:
+            visitors = Visitor.objects.filter(student=student).order_by('-visitor_id')
+        elif request.user.is_staff:
+            visitors = Visitor.objects.all().order_by('-visitor_id')
+
+    return render(request, 'hostel/visitors/my_visitor_requests.html', {
+        'visitors': visitors,
+    })
+
+
+def visitor_dashboard(request):
+    """Admin-only visitor overview."""
+    total    = Visitor.objects.count()
+    pending  = Visitor.objects.filter(status='Pending').count()
+    approved = Visitor.objects.filter(status='Approved').count()
+    rejected = Visitor.objects.filter(status='Rejected').count()
+    visitors = Visitor.objects.select_related('student', 'approved_by').order_by('-visitor_id')
+
+    return render(request, 'hostel/visitors/visitor_dashboard.html', {
+        'total':    total,
+        'pending':  pending,
+        'approved': approved,
+        'rejected': rejected,
+        'visitors': visitors,
+    })
+
+
+def approve_visitor(request, visitor_id):
+    v = get_object_or_404(Visitor, visitor_id=visitor_id)
+    if request.method == 'POST' and request.user.is_staff:
+        v.status      = 'Approved'
+        v.approved_by = request.user
+        v.approved_at = timezone.now()
+        v.save()
+        messages.success(request, f'Visitor #{visitor_id} approved.')
+    return redirect('hostel:visitor_dashboard')
+
+
+def reject_visitor(request, visitor_id):
+    v = get_object_or_404(Visitor, visitor_id=visitor_id)
+    if request.method == 'POST' and request.user.is_staff:
+        v.status = 'Rejected'
+        v.save()
+        messages.warning(request, f'Visitor #{visitor_id} rejected.')
+    return redirect('hostel:visitor_dashboard')

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Maintenance Dashboard – PRAVAAH{% endblock %}
+{% block sb_maint_dash %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Stat Cards ── */
+    .maint-stat { border: 2px solid #E56A35; border-radius: 0; padding: 20px 22px; height: 100%; position: relative; overflow: hidden; }
+    .maint-stat::after { content:''; position:absolute; bottom:0; left:0; right:0; height:4px; background:#E56A35; }
+    .maint-stat.s-black  { background: #0a0a0a; color:#fff; }
+    .maint-stat.s-orange { background: #E56A35; color:#fff; border-color:#c4552a; }
+    .maint-stat.s-orange .sc-icon, .maint-stat.s-orange .sc-num, .maint-stat.s-orange .sc-label { color:#fff !important; }
+    .maint-stat.s-black .sc-num { color:#fff; }
+    .maint-stat.s-black .sc-label { color:rgba(255,255,255,0.6); }
+
+    /* ── Type badges ── */
+    .type-bdg { display:inline-block; padding:2px 9px; font-size:0.64rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; border:1.5px solid; border-radius:2px; }
+    .type-bathroom    { color:#E56A35; border-color:#E56A35; background:#fff8f5; }
+    .type-electrical  { color:#2563eb; border-color:#2563eb; background:#eff6ff; }
+    .type-cleaning    { color:#16a34a; border-color:#16a34a; background:#f0fdf4; }
+    .type-pestcontrol { color:#7c3aed; border-color:#7c3aed; background:#f5f3ff; }
+    .type-furniture   { color:#92400e; border-color:#92400e; background:#fffbeb; }
+    .type-other       { color:#555;    border-color:#aaa;    background:#f5f5f5; }
+
+    /* ── Status badges ── */
+    .bdg-pending    { color: #E56A35; border-color: #E56A35; background: #fff8f5; }
+    .bdg-inprogress { color: #2563eb; border-color: #2563eb; background: #eff6ff; }
+    .bdg-resolved   { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+
+    .p-table tbody tr:hover { background: rgba(229,106,53,0.05); }
+
+    .btn-view { background:#E56A35; color:#fff; border:none; padding:5px 14px; font-size:0.72rem; font-weight:700; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:5px; text-decoration:none; }
+    .btn-view:hover { background:#c4552a; color:#fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">MAINTENANCE <span class="accent">DASHBOARD</span></div>
+        <div class="pg-sub">Monitor and manage all hostel complaints</div>
+    </div>
+</div>
+
+<!-- ── Stat Cards ─────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="maint-stat s-black">
+            <div class="sc-icon mb-2"><i class="fa-solid fa-triangle-exclamation" style="color:#E56A35; font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem; color:#fff;">{{ total }}</div>
+            <div class="sc-label" style="color:rgba(255,255,255,0.6);">Total Complaints</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="maint-stat" style="background:#fff;">
+            <div class="sc-icon mb-2"><i class="fa-regular fa-clock" style="color:#E56A35; font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem;">{{ pending }}</div>
+            <div class="sc-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="maint-stat" style="background:#fff;">
+            <div class="sc-icon mb-2"><i class="fa-solid fa-wrench" style="color:#2563eb; font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem;">{{ in_progress }}</div>
+            <div class="sc-label">In Progress</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="maint-stat s-orange">
+            <div class="sc-icon mb-2"><i class="fa-solid fa-check" style="color:#fff; font-size:1.5rem;"></i></div>
+            <div class="sc-num bebas" style="font-size:2.8rem; color:#fff;">{{ resolved }}</div>
+            <div class="sc-label" style="color:rgba(255,255,255,0.85);">Resolved</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── All Complaints Table ───────────────────────────────────── -->
+<div class="p-card">
+    <div class="p-card-head">
+        <i class="fa-solid fa-list"></i> ALL COMPLAINTS
+    </div>
+    <div class="p-table-wrap">
+        <table class="p-table" id="allComplaintsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Room</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in complaints %}
+                <tr>
+                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <td style="font-size:0.8rem;">
+                        {% if c.student %}{{ c.student.registration_id }}{% else %}<span style="color:#aaa;">—</span>{% endif %}
+                    </td>
+                    <td style="font-size:0.8rem;">
+                        {% if c.room %}{{ c.room.room_number }}{% else %}<span style="color:#aaa;">—</span>{% endif %}
+                    </td>
+                    <td>
+                        {% with t=c.complaint_type|lower|cut:" " %}
+                        <span class="type-bdg type-{{ t }}">{{ c.complaint_type }}</span>
+                        {% endwith %}
+                    </td>
+                    <td style="max-width:280px; font-size:0.8rem;">{{ c.description|truncatechars:60 }}</td>
+                    <td style="white-space:nowrap; font-size:0.78rem;">{{ c.complaint_date|date:"d M Y H:i" }}</td>
+                    <td>
+                        {% if c.status == 'Pending' %}
+                            <span class="bdg bdg-pending"><i class="fa-regular fa-clock"></i> PENDING</span>
+                        {% elif c.status == 'In Progress' %}
+                            <span class="bdg bdg-inprogress"><i class="fa-solid fa-wrench"></i> IN PROGRESS</span>
+                        {% elif c.status == 'Resolved' %}
+                            <span class="bdg bdg-resolved"><i class="fa-solid fa-check"></i> RESOLVED</span>
+                        {% else %}
+                            <span class="bdg">{{ c.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'hostel:complaint_detail_view' c.complaint_id %}" style="display:inline;" id="form-complaint-{{ c.complaint_id }}">
+                            {% csrf_token %}
+                            <select name="status" style="font-size:0.72rem; border:1.5px solid #E56A35; padding:2px 6px; margin-right:4px; background:#fff; cursor:pointer;">
+                                <option value="Pending"     {% if c.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="In Progress" {% if c.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                <option value="Resolved"    {% if c.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                            </select>
+                            <button type="submit" class="btn-view" id="btn-update-{{ c.complaint_id }}">
+                                <i class="fa-solid fa-eye"></i> UPDATE
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center p-4" style="color:#888;">
+                        <i class="fa-solid fa-inbox fa-2x mb-2 d-block" style="color:#ccc;"></i>
+                        No complaints found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

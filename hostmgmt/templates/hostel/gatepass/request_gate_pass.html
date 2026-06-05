@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Request Gate Pass – PRAVAAH{% endblock %}
+{% block sb_request_gp %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #888;
+        font-weight: 700;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #eee;
+    }
+    .p-input:focus {
+        border-color: #E56A35 !important;
+        box-shadow: 0 0 0 3px rgba(229,106,53,0.15) !important;
+        outline: none;
+    }
+    .icon-label { display:flex; align-items:center; gap:6px; }
+    .icon-label i { color: #E56A35; font-size:0.85rem; }
+    .field-icon-wrap { position:relative; }
+    .field-icon-wrap .field-icon {
+        position:absolute; top:50%; transform:translateY(-50%);
+        left:12px; color:#E56A35; font-size:0.85rem; pointer-events:none;
+    }
+    .field-icon-wrap .p-input { padding-left:34px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="pg-header">
+    <div>
+        <div class="pg-title">GATE PASS <span class="accent">REQUEST</span></div>
+        <div class="pg-sub">Fill in the details below to request a gate pass</div>
+    </div>
+    <a href="{% url 'hostel:my_gate_passes' %}" class="btn-p-outline" id="btn-my-passes">
+        <i class="fa-solid fa-list"></i> MY PASSES
+    </a>
+</div>
+
+<!-- ── Form Card ──────────────────────────────────────────────── -->
+<div class="p-card mb-4">
+    <div class="p-card-head">
+        <i class="fa-solid fa-id-card" style="color:#E56A35;"></i>
+        GATE PASS REQUEST FORM
+    </div>
+    <div class="p-card-body">
+        <form method="post" action="{% url 'hostel:request_gate_pass' %}" id="gatePassForm">
+            {% csrf_token %}
+
+            <!-- STUDENT INFORMATION -->
+            <div class="form-section-label">Student Information</div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="p-label" for="id_student_name">Student Name</label>
+                    <input type="text" name="student_name" id="id_student_name" class="p-input"
+                           value="{{ student_name }}" placeholder="Full name" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="p-label" for="id_student_id">Student ID</label>
+                    <input type="text" name="student_id_display" id="id_student_id" class="p-input"
+                           value="{{ student_id_val }}" placeholder="e.g. FSWD-001" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="p-label" for="id_room_no">Room Number</label>
+                    <input type="text" name="room_no" id="id_room_no" class="p-input"
+                           value="{{ room_no }}" placeholder="e.g. 101">
+                </div>
+            </div>
+
+            <!-- TRAVEL INFORMATION -->
+            <div class="form-section-label">Travel Information</div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="p-label icon-label" for="id_destination">
+                        <i class="fa-solid fa-location-dot"></i> Destination
+                    </label>
+                    <div class="field-icon-wrap">
+                        <i class="fa-solid fa-location-dot field-icon"></i>
+                        <input type="text" name="destination" id="id_destination" class="p-input"
+                               placeholder="City / Address" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="p-label icon-label" for="id_emergency_contact">
+                        <i class="fa-solid fa-phone"></i> Emergency Contact
+                    </label>
+                    <div class="field-icon-wrap">
+                        <i class="fa-solid fa-phone field-icon"></i>
+                        <input type="text" name="emergency_contact" id="id_emergency_contact" class="p-input"
+                               placeholder="10-digit phone number">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="p-label" for="id_purpose">Purpose of Visit</label>
+                    <textarea name="purpose" id="id_purpose" class="p-input" rows="3"
+                              placeholder="Describe the purpose of your travel..." required></textarea>
+                </div>
+            </div>
+
+            <!-- SCHEDULE -->
+            <div class="form-section-label">Schedule</div>
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <label class="p-label icon-label" for="id_out_date">
+                        <i class="fa-regular fa-calendar"></i> Out Date
+                    </label>
+                    <input type="date" name="out_date" id="id_out_date" class="p-input" required>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="p-label icon-label" for="id_out_time">
+                        <i class="fa-regular fa-clock"></i> Out Time
+                    </label>
+                    <input type="time" name="out_time" id="id_out_time" class="p-input" required>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="p-label icon-label" for="id_return_date">
+                        <i class="fa-regular fa-calendar"></i> Return Date
+                    </label>
+                    <input type="date" name="return_date" id="id_return_date" class="p-input" required>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="p-label icon-label" for="id_return_time">
+                        <i class="fa-regular fa-clock"></i> Return Time
+                    </label>
+                    <input type="time" name="return_time" id="id_return_time" class="p-input" required>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex gap-3 flex-wrap">
+                <button type="submit" class="btn-p" id="btn-submit-gp">
+                    <i class="fa-solid fa-paper-plane"></i> SUBMIT REQUEST
+                </button>
+                <a href="{% url 'hostel:my_gate_passes' %}" class="btn-p-outline" id="btn-cancel-gp">
+                    <i class="fa-solid fa-xmark"></i> CANCEL
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

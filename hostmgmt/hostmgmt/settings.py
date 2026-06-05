@@ -86,10 +86,21 @@ WSGI_APPLICATION = 'hostmgmt.wsgi.application'
 #
 
 # ── ACTIVE: SQLite (development / local testing) ──────────────────────────────
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'pravaah',
+        'USER': 'test',
+        'PASSWORD': 'admin@123',
+        'HOST': '192.168.0.77',
+        'PORT': '3306',
     }
 }
 
@@ -144,10 +155,13 @@ MESSAGE_TAGS = {
 }
 
 
-# ── AUTH ───────────────────────────────────────────────────────────────────────
-LOGIN_URL          = '/admin/login/'
-LOGIN_REDIRECT_URL = '/hostel/'
+# # ── AUTH ───────────────────────────────────────────────────────────────────────
+# LOGIN_URL          = '/admin/login/'
+# LOGIN_REDIRECT_URL = '/hostel/'
 
+LOGIN_URL = '/hostel/login/'
+LOGIN_REDIRECT_URL = '/hostel/'
+LOGOUT_REDIRECT_URL = '/hostel/login/'
 
 # ── DEFAULT AUTO FIELD ─────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
