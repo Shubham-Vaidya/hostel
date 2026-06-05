@@ -33,6 +33,8 @@ urlpatterns = [
     path('allocate/manual/',                        views.manual_allocate,    name='manual_allocate'),
     path('allocate/results/',                       views.allocation_results, name='allocation_results'),
     path('allocate/list/',                          views.allocation_list,    name='allocation_list'),
+    path('allocate/export-csv/',                    views.export_allocation_csv,    name='export_allocation_csv'),
+    path('allocate/send-to-services/',              views.send_to_common_services,  name='send_to_common_services'),
     path('allocate/remove/<int:allocation_id>/',    views.remove_allocation,  name='remove_allocation'),
     path('allocate/transfer/<int:allocation_id>/',  views.transfer_student,   name='transfer_student'),
 

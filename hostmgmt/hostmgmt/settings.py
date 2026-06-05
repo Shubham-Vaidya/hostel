@@ -165,3 +165,9 @@ LOGOUT_REDIRECT_URL = '/hostel/login/'
 
 # ── DEFAULT AUTO FIELD ─────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ── COMMON SERVICES INTEGRATION ────────────────────────────────────────────────
+# URL of the Common Services email dispatch endpoint.
+# Replace this with the real endpoint URL from the central ERP.
+# The hostel module will POST a CSV file to this URL after auto-allocation.
+COMMON_SERVICES_EMAIL_URL = 'http://YOUR_COMMON_SERVICES_HOST/api/send-bulk-email/'

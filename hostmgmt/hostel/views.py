@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .models import (
+    Hostel, Block, Floor,
     Room, Student, RoomAllocation,
     Complaint, MaintenanceRequest, GatePass, Visitor,
 )
@@ -42,21 +43,30 @@ def dashboard(request):
     total_rooms     = Room.objects.count()
     available_rooms = Room.objects.filter(status='Available').count()
     occupied_rooms  = Room.objects.filter(status='Occupied').count()
+    partial_rooms   = Room.objects.filter(status='Partially Occupied').count()
     repair_rooms    = Room.objects.filter(status='Maintenance').count()
     total_students  = Student.objects.count()
     allocated       = RoomAllocation.objects.filter(status='Active').count()
     pending         = max(0, total_students - allocated)
 
+    # Infrastructure stats from real DB
+    total_hostels = Hostel.objects.count()
+    total_blocks  = Block.objects.count()
+    total_floors  = Floor.objects.count()
+
     return render(request, 'hostel/dashboard.html', {
         'total_rooms':     total_rooms,
         'available_rooms': available_rooms,
-        'occupied_rooms':  occupied_rooms,
+        'occupied_rooms':  occupied_rooms + partial_rooms,
         'total_students':  total_students,
         'allocated':       allocated,
         'pending':         pending,
         'trainers_alloc':  0,
         'repair_rooms':    repair_rooms,
         'batch_stats':     [],
+        'total_hostels':   total_hostels,
+        'total_blocks':    total_blocks,
+        'total_floors':    total_floors,
     })
 
 
@@ -137,15 +147,15 @@ def rooms_view(request):
         return redirect('hostel:rooms')
 
     return render(request, 'hostel/rooms_list.html', {
-        'rooms':           qs,
-        'total_rooms':     total_rooms,
-        'available':       available,
-        'occupied':        occupied,
-        'maintenance':     maintenance,
-        'filter_status':   filter_status,
+        'rooms':            qs,
+        'total_rooms':      total_rooms,
+        'available':        available,
+        'occupied':         occupied,
+        'maintenance':      maintenance,
+        'filter_status':    filter_status,
         'filter_room_type': filter_room_type,
-        'room_types':      ['Single', 'Double', 'Triple'],
-        'statuses':        ['Available', 'Occupied', 'Maintenance'],
+        'room_types':       ['Single', 'Double', 'Triple'],
+        'statuses':         ['Available', 'Partially Occupied', 'Occupied', 'Maintenance'],
     })
 
 
@@ -498,7 +508,186 @@ def allocation_list(request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ADMIN ACTIONS
+# CSV EXPORT & COMMON SERVICES DISPATCH
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin_required
+def export_allocation_csv(request):
+    """
+    Streams a CSV file containing full allocation details for all active
+    room allocations. Columns: Admission No, Name, Email, Mobile, Gender,
+    Academic Year, Hostel, Block, Floor, Room No, Room Type, Capacity,
+    Bed No, Allocation Date.
+    """
+    import csv
+    from django.http import StreamingHttpResponse
+    from django.db import connection
+
+    # Fetch all active allocations with full room hierarchy via raw SQL
+    # so we can join hostels/blocks/floors which don't have direct FKs in models
+    sql = """
+        SELECT
+            s.admission_no,
+            CONCAT(COALESCE(s.first_name,''), ' ', COALESCE(s.last_name,'')) AS full_name,
+            s.email,
+            s.mobile,
+            s.gender,
+            s.academic_year,
+            h.hostel_name,
+            b.block_name,
+            f.floor_no,
+            r.room_no,
+            r.room_type,
+            r.capacity,
+            ra.bed_number,
+            ra.allocation_date
+        FROM room_allocations ra
+        JOIN students s  ON ra.student_id = s.student_id
+        JOIN rooms    r  ON ra.room_id    = r.room_id
+        JOIN floors   f  ON r.floor_id    = f.floor_id
+        JOIN blocks   b  ON f.block_id    = b.block_id
+        JOIN hostels  h  ON b.hostel_id   = h.hostel_id
+        WHERE ra.status = 'Active'
+        ORDER BY h.hostel_name, b.block_name, r.room_no, s.first_name
+    """
+
+    class EchoWriter:
+        """A writer that returns the value written."""
+        def write(self, value):
+            return value
+
+    def generate_rows(cursor):
+        writer = csv.writer(EchoWriter())
+        # Header
+        yield writer.writerow([
+            'Admission No', 'Full Name', 'Email', 'Mobile', 'Gender',
+            'Academic Year', 'Hostel', 'Block', 'Floor No',
+            'Room No', 'Room Type', 'Capacity', 'Bed No', 'Allocation Date'
+        ])
+        cursor.execute(sql)
+        for row in cursor.fetchall():
+            yield writer.writerow(row)
+
+    cursor = connection.cursor()
+    response = StreamingHttpResponse(
+        generate_rows(cursor),
+        content_type='text/csv',
+    )
+    from datetime import date
+    filename = f'room_allocation_{date.today().isoformat()}.csv'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@admin_required
+def send_to_common_services(request):
+    """
+    Generates the allocation CSV in memory and POSTs it to the configured
+    Common Services email endpoint (COMMON_SERVICES_EMAIL_URL in settings.py).
+    Common Services is expected to read each row, generate a personalized PDF,
+    and email it to the student.
+    """
+    if request.method != 'POST':
+        return redirect('hostel:allocation_results')
+
+    import csv, io, urllib.request, urllib.error
+    from django.conf import settings
+    from django.db import connection
+
+    endpoint = getattr(settings, 'COMMON_SERVICES_EMAIL_URL', '')
+    if not endpoint or 'YOUR_COMMON_SERVICES_HOST' in endpoint:
+        messages.warning(
+            request,
+            'Common Services endpoint is not configured. '
+            'Set COMMON_SERVICES_EMAIL_URL in settings.py to the real URL, then try again.'
+        )
+        return redirect('hostel:allocation_results')
+
+    sql = """
+        SELECT
+            s.admission_no,
+            CONCAT(COALESCE(s.first_name,''), ' ', COALESCE(s.last_name,'')) AS full_name,
+            s.email,
+            s.mobile,
+            s.gender,
+            s.academic_year,
+            h.hostel_name,
+            b.block_name,
+            f.floor_no,
+            r.room_no,
+            r.room_type,
+            r.capacity,
+            ra.bed_number,
+            ra.allocation_date
+        FROM room_allocations ra
+        JOIN students s  ON ra.student_id = s.student_id
+        JOIN rooms    r  ON ra.room_id    = r.room_id
+        JOIN floors   f  ON r.floor_id    = f.floor_id
+        JOIN blocks   b  ON f.block_id    = b.block_id
+        JOIN hostels  h  ON b.hostel_id   = h.hostel_id
+        WHERE ra.status = 'Active'
+        ORDER BY h.hostel_name, b.block_name, r.room_no, s.first_name
+    """
+
+    cursor = connection.cursor()
+    cursor.execute(sql)
+    rows = cursor.fetchall()
+
+    if not rows:
+        messages.warning(request, 'No active allocations found. Nothing was sent.')
+        return redirect('hostel:allocation_results')
+
+    # Build CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Admission No', 'Full Name', 'Email', 'Mobile', 'Gender',
+        'Academic Year', 'Hostel', 'Block', 'Floor No',
+        'Room No', 'Room Type', 'Capacity', 'Bed No', 'Allocation Date'
+    ])
+    for row in rows:
+        writer.writerow(row)
+
+    csv_bytes = output.getvalue().encode('utf-8')
+
+    # POST to Common Services
+    try:
+        boundary = b'----PravaahHostelCSVBoundary'
+        body = (
+            b'--' + boundary + b'\r\n'
+            b'Content-Disposition: form-data; name="csv_file"; filename="room_allocation.csv"\r\n'
+            b'Content-Type: text/csv\r\n\r\n' +
+            csv_bytes + b'\r\n'
+            b'--' + boundary + b'--\r\n'
+        )
+        req = urllib.request.Request(
+            endpoint,
+            data=body,
+            headers={
+                'Content-Type': f'multipart/form-data; boundary={boundary.decode()}',
+                'X-Source': 'PRAVAAH-Hostel',
+            },
+            method='POST',
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            status = resp.getcode()
+        messages.success(
+            request,
+            f'✅ Allocation data for {len(rows)} student(s) sent to Common Services '
+            f'(HTTP {status}). Emails with PDF attachments will be dispatched shortly.'
+        )
+    except urllib.error.URLError as e:
+        messages.error(
+            request,
+            f'❌ Could not reach Common Services at {endpoint}: {e.reason}. '
+            f'CSV data is ready — use "Download CSV" to send it manually.'
+        )
+    except Exception as e:
+        messages.error(request, f'❌ Unexpected error sending to Common Services: {e}')
+
+    return redirect('hostel:allocation_results')
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 @admin_required
@@ -568,9 +757,17 @@ def raise_complaint(request):
         if not complaint_type or not description:
             messages.error(request, 'Please fill in all required fields.')
             return redirect('hostel:raise_complaint')
-        student = Student.objects.filter(email=request.user.email).first()
+        # Using a mock active student since authentication is removed
+        student = Student.objects.filter(status='Active').first()
+        
+        # We must provide a room_id for the complaint. Find the student's active room.
+        from .models import RoomAllocation, Room
+        allocation = RoomAllocation.objects.filter(student=student, status='Active').first()
+        room = allocation.room if allocation else Room.objects.first()
+
         Complaint.objects.create(
             student=student,
+            room=room,
             complaint_type=complaint_type,
             description=description,
             status='Pending',
@@ -622,7 +819,8 @@ def complaint_detail_view(request, complaint_id):
 def request_gate_pass(request):
     if request.method == 'POST':
         try:
-            student = Student.objects.filter(email=request.user.email).first()
+            # Using a mock active student since authentication is removed
+            student = Student.objects.filter(status='Active').first()
             GatePass.objects.create(
                 student=student,
                 room_no=request.POST.get('room_no', '').strip(),
@@ -641,7 +839,8 @@ def request_gate_pass(request):
             messages.error(request, f'Error submitting gate pass: {e}')
 
     student_name = student_id_val = room_no = ''
-    student = Student.objects.filter(email=request.user.email).first()
+    # Using a mock active student since authentication is removed
+    student = Student.objects.filter(status='Active').first()
     if student:
         student_name   = student.full_name
         student_id_val = student.registration_id
@@ -712,7 +911,8 @@ def mark_returned(request, pass_id):
 def request_visitor_pass(request):
     if request.method == 'POST':
         try:
-            student = Student.objects.filter(email=request.user.email).first()
+            # Using a mock active student since authentication is removed
+            student = Student.objects.filter(status='Active').first()
             Visitor.objects.create(
                 student=student,
                 visitor_name=request.POST.get('visitor_name', '').strip(),

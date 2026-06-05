@@ -4,6 +4,51 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 # ─────────────────────────────────────────────────────────────────────────────
+# INFRASTRUCTURE MODELS — hostels, blocks, floors
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Hostel(models.Model):
+    hostel_id   = models.AutoField(primary_key=True)
+    hostel_code = models.CharField(max_length=20)
+    hostel_name = models.CharField(max_length=100)
+    address     = models.CharField(max_length=255, blank=True, null=True)
+    status      = models.CharField(max_length=20, default='Active')
+
+    class Meta:
+        managed  = False
+        db_table = 'hostels'
+
+    def __str__(self):
+        return self.hostel_name
+
+
+class Block(models.Model):
+    block_id   = models.AutoField(primary_key=True)
+    hostel     = models.ForeignKey(Hostel, on_delete=models.CASCADE, db_column='hostel_id', related_name='blocks')
+    block_name = models.CharField(max_length=50)
+
+    class Meta:
+        managed  = False
+        db_table = 'blocks'
+
+    def __str__(self):
+        return self.block_name
+
+
+class Floor(models.Model):
+    floor_id = models.AutoField(primary_key=True)
+    block    = models.ForeignKey(Block, on_delete=models.CASCADE, db_column='block_id', related_name='floors')
+    floor_no = models.IntegerField()
+
+    class Meta:
+        managed  = False
+        db_table = 'floors'
+
+    def __str__(self):
+        return f"Floor {self.floor_no}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # CORE HOSTEL MODELS — all managed=False, matching the actual MySQL schema
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -15,17 +60,19 @@ class Room(models.Model):
         ('Triple', 'Triple'),
     ]
     STATUS_CHOICES = [
-        ('Available',   'Available'),
-        ('Occupied',    'Occupied'),
-        ('Maintenance', 'Maintenance'),
+        ('Available',          'Available'),
+        ('Partially Occupied', 'Partially Occupied'),
+        ('Occupied',           'Occupied'),
+        ('Maintenance',        'Maintenance'),
     ]
 
-    room_id   = models.AutoField(primary_key=True)
-    floor_id  = models.IntegerField(default=1)
-    room_no   = models.CharField(max_length=20)
-    room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default='Double')
-    capacity  = models.IntegerField(default=2)
-    status    = models.CharField(max_length=15, choices=STATUS_CHOICES, default='Available')
+    room_id            = models.AutoField(primary_key=True)
+    floor_id           = models.IntegerField(default=1)
+    room_no            = models.CharField(max_length=20)
+    room_type          = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default='Double')
+    capacity           = models.IntegerField(default=2)
+    status             = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Available')
+    current_occupancy  = models.IntegerField(default=0)
 
     class Meta:
         managed  = False
@@ -45,12 +92,13 @@ class Room(models.Model):
         return self.status == 'Maintenance'
 
     @property
-    def current_occupancy(self):
+    def current_occupancy_count(self):
+        """Live count from room_allocations (more accurate than the stored column)."""
         return self.allocations.filter(status='Active').count()
 
     @property
     def is_full(self):
-        return self.status == 'Occupied' or self.current_occupancy >= self.capacity
+        return self.status in ('Occupied', 'Partially Occupied') or self.current_occupancy >= self.capacity
 
     @property
     def is_available(self):
@@ -62,23 +110,27 @@ class Room(models.Model):
             return 'REPAIR'
         if self.status == 'Available':
             return 'EMPTY'
+        if self.status == 'Partially Occupied':
+            return 'PARTIAL'
         return 'FULL'
 
     @property
     def status_color(self):
         mapping = {
-            'Available':   'green',
-            'Occupied':    'red',
-            'Maintenance': 'black',
+            'Available':          'green',
+            'Partially Occupied': 'orange',
+            'Occupied':           'red',
+            'Maintenance':        'black',
         }
         return mapping.get(self.status, 'black')
 
     @property
     def status_css(self):
         mapping = {
-            'Available':   'empty',
-            'Occupied':    'full',
-            'Maintenance': 'repair',
+            'Available':          'empty',
+            'Partially Occupied': 'partial',
+            'Occupied':           'full',
+            'Maintenance':        'repair',
         }
         return mapping.get(self.status, 'repair')
 
